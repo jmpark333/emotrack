@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>정서적 독립 트래커</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --primary: #6C5CE7;
+            --secondary: #A29BFE;
+            --success: #00B894;
+            --warning: #FDCB6E;
+            --danger: #FF7675;
+            --light: #DFE6E9;
+            --dark: #2D3436;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+            color: var(--dark);
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            flex: 1;
+            margin: 0 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .check-item {
+            background: var(--light);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+        .check-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        .check-item.completed {
+            background: rgba(0,184,148,0.1);
+            border-left: 5px solid var(--success);
+        }
+        .check-input {
+            margin-right: 10px;
+            transform: scale(1.3);
+        }
+        .emergency-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            margin: 15px 0;
+            transition: all 0.3s;
+        }
+        .emergency-btn:hover {
+            background: #e84393;
+            transform: scale(1.02);
+        }
+        .progress-bar {
+            height: 8px;
+            background: var(--light);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--warning));
+            transition: width 0.5s;
+        }
+        .diary-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(108,92,231,0.1);
+            border-radius: 15px;
+        }
+        .diary-input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+        }
+        .diary-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            font-size: 0.85rem;
+        }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+        .btn-danger {
+            background: var(--danger);
+        }
+        .badge {
+            display: inline-block;
+            background: var(--warning);
+            color: var(--dark);
+            padding: 3px 10px;
+            border-radius: 15px;
+            margin: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        /* 모바일 뷰를 위한 추가 스타일 */
+        body.mobile-view {
+            padding: 10px;
+        }
+        
+        body.mobile-view .container {
+            padding: 15px;
+        }
+        
+        body.mobile-view .header h1 {
+            font-size: 1.5rem;
+        }
+        
+        body.mobile-view .stat-card {
+            padding: 12px 8px;
+            margin: 0 3px;
+        }
+        
+        body.mobile-view .stat-value {
+            font-size: 1.2rem;
+        }
+        
+        body.mobile-view .check-item {
+            padding: 10px;
+            margin-bottom: 6px;
+        }
+        
+        body.mobile-view .check-input {
+            transform: scale(1.2);
+        }
+        
+        body.mobile-view .diary-input {
+            font-size: 1rem;
+            padding: 10px;
+        }
+        
+        body.mobile-view .btn, body.mobile-view .emergency-btn {
+            padding: 12px 15px;
+            font-size: 1rem;
+        }
+        
+        body.mobile-view .diary-item {
+            font-size: 0.9rem;
+            padding: 12px;
+        }
+        
+        /* 홈 화면 아이콘 추가를 위한 메타 태그 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #8B7CF6;
+                --secondary: #A29BFE;
+            }
+        }
+    </style>
+    
+    <!-- 홈 화면에 추가하기 위한 설정 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="정서적 독립 트래커">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi7JeQ7J6QIOyEoOyCrOyKpOyVhOq1rCDrs7XsnLjtirgiLCJzaG9ydF9uYW1lIjoi7JeQ7J6QIOyEoOyCrOyKpOyVhOq1rCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZmZmIiwidGhlbWVfY29sb3IiOiIjNkM1Q0U3In0=">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧘‍♂️ 정서적 독립 트래커</h1>
+            <p>오늘도 당신의 평온함을 지키는 하루가 되길</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="streak">0</div>
+                <div>연속 일수</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="level">1</div>
+                <div>평온 레벨</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="points">0</div>
+                <div>평온 포인트</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress" id="dailyProgress" style="width: 0%"></div>
+        </div>
+        
+        <h3>🌅 아침 훈련</h3>
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="morning1">
+            <label for="morning1">감정 분리 선언 ("오늘 아내의 감정은 나의 것이 아님" 3번)</label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="morning2">
+            <label for="morning2">오늘 지킬 핵심 가치 선택 (평온/존중/자존감)</label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="morning3">
+            <label for="morning3">오늘의 '나만의 30분' 계획 세우기</label>
+        </div>
+        
+        <h3>🌞 점심 훈련</h3>
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="noon1">
+            <label for="noon1">비판적 말 들었을 때 "이건 사실인가?" 필터링</label>
+        </div>
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="noon2">
+            <label for="noon2">"지금은 어렵다"고 말하기 (아니오 연습)</label>
+        </div>
+        
+        <h3>🌙 저녁 훈련</h3>
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="evening1">
+            <label for="evening1">감정 폭발 시 4-7-8 호흡법 3회</label>
+        </div>
+        
+        <div class="check-item">
+            <label for="evening2">📖 감정 일기 작성</label>
+            <input type="text" id="wifeAction" class="diary-input" placeholder="아내의 행동 (예: 고성 질문)">
+            <input type="text" id="myReaction" class="diary-input" placeholder="내 첫 반응 (예: 죄책감 + 분노)">
+            <input type="text" id="reinterpretation" class="diary-input" placeholder="재해석 (예: 그녀는 불안해서 그런 거야)">
+            <button class="btn" onclick="saveDiary()">💾 저장하고 체크 완료</button>
+        </div>
+        
+        <div class="check-item">
+            <input type="checkbox" class="check-input" id="evening3">
+            <label for="evening3">오늘 나를 지킨 행동 1가지 칭찬하기</label>
+        </div>
+        
+        <button class="emergency-btn" onclick="startBreathing()">
+            🚨 긴급 호흡법 시작 (4-7-8)
+        </button>
+        
+        <div class="diary-section">
+            <h3>📚 최근 감정 일기</h3>
+            <div id="diaryList"></div>
+            <button class="btn btn-danger" onclick="clearDiaries()">🗑️ 모든 일기 삭제</button>
+        </div>
+        
+        <div class="reward">
+            <h3>🏆 오늘의 보상</h3>
+            <div id="badges"></div>
+            <p id="rewardText">모든 체크리스트를 완료하면 보상이 열립니다!</p>
+        </div>
+    </div>
+
+    <script>
+        // 데이터 초기화
+        let userData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
+            streak: 0,
+            level: 1,
+            points: 0,
+            lastCheck: null,
+            completedToday: [],
+            totalPoints: 0  // 총 누적 포인트 추가
+        };
+        
+        let diaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
+        
+        // 스마트폰 환경 감지
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // 스마트폰에서의 사용성 개선
+        if (isMobile) {
+            document.body.classList.add('mobile-view');
+        }
+
+        // 화면 업데이트
+        function updateUI() {
+            document.getElementById('streak').textContent = userData.streak;
+            document.getElementById('level').textContent = userData.level;
+            document.getElementById('points').textContent = userData.points;
+            
+            // 체크리스트 상태 복원
+            document.querySelectorAll('.check-input').forEach(checkbox => {
+                checkbox.checked = userData.completedToday.includes(checkbox.id);
+                checkbox.addEventListener('change', handleCheck);
+            });
+            
+            updateProgress();
+            updateBadges();
+            displayDiaries();
+        }
+
+        // 체크 이벤트 처리
+        function handleCheck(e) {
+            const id = e.target.id;
+            const parent = e.target.parentElement;
+            
+            if(e.target.checked) {
+                if(!userData.completedToday.includes(id)) {
+                    userData.completedToday.push(id);
+                    userData.points += 10;
+                    userData.totalPoints = (userData.totalPoints || 0) + 10; // 총 누적 포인트 증가
+                    parent.classList.add('completed');
+                }
+            } else {
+                userData.completedToday = userData.completedToday.filter(item => item !== id);
+                userData.points -= 10;
+                parent.classList.remove('completed');
+            }
+            
+            // 데이터 저장 및 백업
+            saveUserData();
+            updateProgress();
+            updateBadges();
+            
+            // 레벨업 체크
+            if(userData.points >= userData.level * 100) {
+                userData.level++;
+                alert(`🎉 레벨업! 평온 레벨 ${userData.level} 달성!`);
+                saveUserData();
+            }
+        }
+        
+        // 사용자 데이터 저장 및 백업
+        function saveUserData() {
+            localStorage.setItem('emotionalIndependence', JSON.stringify(userData));
+            
+            // 세션 스토리지에도 백업 (로컬 스토리지가 클리어되는 경우 대비)
+            try {
+                sessionStorage.setItem('emotionalIndependence_backup', JSON.stringify(userData));
+            } catch (e) {
+                console.log('세션 스토리지 백업 실패:', e);
+            }
+        }
+        
+        // 데이터 복구 함수
+        function recoverUserData() {
+            try {
+                const backup = sessionStorage.getItem('emotionalIndependence_backup');
+                if (backup && !localStorage.getItem('emotionalIndependence')) {
+                    localStorage.setItem('emotionalIndependence', backup);
+                    return JSON.parse(backup);
+                }
+            } catch (e) {
+                console.log('데이터 복구 실패:', e);
+            }
+            return null;
+        }
+
+        // 진행도 업데이트
+        function updateProgress() {
+            const total = document.querySelectorAll('.check-input').length;
+            const completed = userData.completedToday.length;
+            const percentage = (completed / total) * 100;
+            document.getElementById('dailyProgress').style.width = percentage + '%';
+            
+            // 연속 일수 계산
+            const today = new Date().toDateString();
+            if(completed === total && userData.lastCheck !== today) {
+                userData.streak++;
+                userData.lastCheck = today;
+            } else if(completed < total && userData.lastCheck === today) {
+                userData.streak = 0;
+            }
+        }
+
+        // 뱃지 업데이트
+        function updateBadges() {
+            const badgesContainer = document.getElementById('badges');
+            badgesContainer.innerHTML = '';
+            
+            if(userData.streak >= 3) {
+                badgesContainer.innerHTML += '<span class="badge">🔥 3일 연속</span>';
+            }
+            if(userData.streak >= 7) {
+                badgesContainer.innerHTML += '<span class="badge">⭐ 평온 수호자</span>';
+            }
+            if(userData.level >= 3) {
+                badgesContainer.innerHTML += '<span class="badge">🛡️ 정신의 방패</span>';
+            }
+            
+            // 보상 메시지
+            const total = document.querySelectorAll('.check-input').length;
+            const completed = userData.completedToday.length;
+            if(completed === total) {
+                document.getElementById('rewardText').innerHTML = 
+                    `🎉 완료! 오늘의 보상: <strong>${getRandomReward()}</strong>`;
+            }
+        }
+
+        // 랜덤 보상
+        function getRandomReward() {
+            const rewards = [
+                "따뜻한 차 한잔의 여유",
+                "좋아하는 노래 3곡 듣기",
+                "15분 추가 휴식",
+                "작은 간식 먹기",
+                "오늘은 칭찬 일기 쓰지 않기"
+            ];
+            return rewards[Math.floor(Math.random() * rewards.length)];
+        }
+
+        // 호흡법 타이머
+        function startBreathing() {
+            alert("🌬️ 4초 들이마시기 → 7초 참기 → 8초 내쉬기\n\n지금 시작합니다. 화면을 보며 따라해주세요!");
+            
+            let step = 0;
+            const steps = [
+                { text: "들이마시기 (4초)", duration: 4000 },
+                { text: "참기 (7초)", duration: 7000 },
+                { text: "내쉬기 (8초)", duration: 8000 }
+            ];
+            
+            const interval = setInterval(() => {
+                alert(steps[step].text);
+                step++;
+                if(step >= steps.length) {
+                    clearInterval(interval);
+                    alert("✅ 호흡법 완료! 이제 조금 더 평온해지셨나요?");
+                }
+            }, steps[step]?.duration || 0);
+        }
+
+        // 감정 일기 저장
+        function saveDiary() {
+            const wifeAction = document.getElementById('wifeAction').value;
+            const myReaction = document.getElementById('myReaction').value;
+            const reinterpretation = document.getElementById('reinterpretation').value;
+            
+            if(!wifeAction || !myReaction || !reinterpretation) {
+                alert('모든 필드를 작성해주세요!');
+                return;
+            }
+            
+            const diary = {
+                date: new Date().toLocaleString(),
+                wifeAction,
+                myReaction,
+                reinterpretation
+            };
+            
+            diaries.unshift(diary);
+            localStorage.setItem('emotionDiaries', JSON.stringify(diaries));
+            
+            // 일기 데이터 백업
+            try {
+                sessionStorage.setItem('emotionDiaries_backup', JSON.stringify(diaries));
+            } catch (e) {
+                console.log('일기 백업 실패:', e);
+            }
+            
+            // 체크박스 자동 완료
+            document.getElementById('evening2').checked = true;
+            handleCheck({target: document.getElementById('evening2')});
+            
+            // 입력 필드 초기화
+            document.getElementById('wifeAction').value = '';
+            document.getElementById('myReaction').value = '';
+            document.getElementById('reinterpretation').value = '';
+            
+            displayDiaries();
+            alert('✅ 감정 일기가 저장되었습니다!');
+        }
+
+        // 일기 목록 표시
+        function displayDiaries() {
+            const diaryList = document.getElementById('diaryList');
+            diaryList.innerHTML = '';
+            
+            if(diaries.length === 0) {
+                diaryList.innerHTML = '<p style="color: #666;">저장된 일기가 없습니다</p>';
+                return;
+            }
+            
+            diaries.slice(0, 7).forEach(diary => {
+                const diaryItem = document.createElement('div');
+                diaryItem.className = 'diary-item';
+                diaryItem.innerHTML = `
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">📅 ${diary.date}</div>
+                    <div><strong>👩 아내:</strong> ${diary.wifeAction}</div>
+                    <div><strong>👨 나:</strong> ${diary.myReaction}</div>
+                    <div><strong>💡 재해석:</strong> <span style="color: var(--success);">${diary.reinterpretation}</span></div>
+                `;
+                diaryList.appendChild(diaryItem);
+            });
+        }
+
+        // 일기 삭제
+        function clearDiaries() {
+            if(confirm('정말 모든 감정 일기를 삭제하시겠습니까?')) {
+                diaries = [];
+                localStorage.setItem('emotionDiaries', JSON.stringify(diaries));
+                displayDiaries();
+                alert('모든 일기가 삭제되었습니다.');
+            }
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 데이터 복구 시도
+            const recoveredData = recoverUserData();
+            if (recoveredData) {
+                userData = recoveredData;
+                console.log('데이터가 복구되었습니다.');
+            }
+            
+            // 일기 데이터 복구 시도
+            try {
+                const diaryBackup = sessionStorage.getItem('emotionDiaries_backup');
+                if (diaryBackup && diaries.length === 0) {
+                    diaries = JSON.parse(diaryBackup);
+                    console.log('일기 데이터가 복구되었습니다.');
+                }
+            } catch (e) {
+                console.log('일기 데이터 복구 실패:', e);
+            }
+            
+            updateUI();
+        });
+    </script>
+</body>
+</html>
