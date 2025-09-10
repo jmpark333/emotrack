@@ -543,6 +543,40 @@
             }
         }
 
+        // 날짜 변경 확인 및 completedToday 배열 초기화
+        function checkDateChangeAndReset() {
+            const today = new Date().toDateString();
+            const lastCheck = userData.lastCheck;
+            
+            if (lastCheck && lastCheck !== today) {
+                // 날짜가 변경된 경우
+                const yesterday = new Date(lastCheck);
+                const currentDate = new Date(today);
+                const daysDiff = Math.floor((currentDate - yesterday) / (1000 * 60 * 60 * 24));
+                
+                if (daysDiff === 1) {
+                    // 하루가 지난 경우: 연속 일수는 유지, completedToday만 초기화
+                    console.log('날짜가 변경되었습니다. completedToday 배열을 초기화합니다.');
+                } else if (daysDiff > 1) {
+                    // 여러 날이 지난 경우: 연속 일수도 초기화
+                    userData.streak = 0;
+                    console.log('여러 날이 지났습니다. 연속 일수와 completedToday 배열을 초기화합니다.');
+                }
+                
+                // completedToday 배열 초기화
+                userData.completedToday = [];
+                userData.points = 0; // 매일 포인트도 초기화
+                
+                // 변경된 데이터 저장
+                saveUserData();
+                
+                // UI 업데이트
+                updateUI();
+                
+                console.log('completedToday 배열이 초기화되었습니다.');
+            }
+        }
+
         // 초기화
         document.addEventListener('DOMContentLoaded', function() {
             // 데이터 복구 시도
@@ -562,6 +596,9 @@
             } catch (e) {
                 console.log('일기 데이터 복구 실패:', e);
             }
+            
+            // 날짜 변경 확인 및 초기화
+            checkDateChangeAndReset();
             
             updateUI();
         });
