@@ -356,6 +356,9 @@
                 parent.classList.remove('completed');
             }
             
+            // 현재 날짜를 lastCheck에 설정하여 하루 중에 체크 상태 유지
+            userData.lastCheck = new Date().toDateString();
+            
             // 데이터 저장 및 백업
             saveUserData();
             updateProgress();
@@ -404,11 +407,27 @@
             
             // 연속 일수 계산
             const today = new Date().toDateString();
-            if(completed === total && userData.lastCheck !== today) {
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayString = yesterday.toDateString();
+            
+            // 오늘 첫 번째 체크이고 어제도 체크한 경우 연속 일수 증가
+            if(completed > 0 && userData.lastCheck === yesterdayString) {
                 userData.streak++;
                 userData.lastCheck = today;
-            } else if(completed < total && userData.lastCheck === today) {
-                userData.streak = 0;
+            }
+            // 어제 체크하지 않았는데 오늘 체크한 경우 연속 일수 1로 설정
+            else if(completed > 0 && !userData.lastCheck) {
+                userData.streak = 1;
+                userData.lastCheck = today;
+            }
+            // 어제 체크했는데 오늘 아직 체크하지 않은 경우
+            else if(completed === 0 && userData.lastCheck === yesterdayString) {
+                // 아직 아무것도 체크하지 않은 것이므로 연속 일수 유지
+            }
+            // 어제 체크했는데 오늘 일부만 체크한 경우
+            else if(completed > 0 && completed < total && userData.lastCheck === today) {
+                // 이미 연속 일수가 증가했으므로 아무것도 하지 않음
             }
         }
 
@@ -574,6 +593,12 @@
                 updateUI();
                 
                 console.log('completedToday 배열이 초기화되었습니다.');
+            } else if (!lastCheck && userData.completedToday.length > 0) {
+                // lastCheck가 없지만 completedToday에 데이터가 있는 경우
+                // 오늘 날짜로 lastCheck 설정하여 데이터 유지
+                userData.lastCheck = today;
+                saveUserData();
+                console.log('lastCheck를 오늘 날짜로 설정했습니다.');
             }
         }
 
