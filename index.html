@@ -817,7 +817,9 @@
                     completed_today: [],
                     total_points: 0,
                     start_date: null,
-                    last_completed_date: null
+                    last_completed_date: null,
+                    breathing_points: 0,
+                    diaries: []
                 };
 
                 const { data, error } = await supabaseClient
@@ -915,6 +917,11 @@
                     .single();
 
                 console.log('데이터 조회 결과:', { data, error });
+                if (data) {
+                    console.log('조회된 데이터 필드:', Object.keys(data));
+                    console.log('diaries 필드:', data.diaries);
+                    console.log('breathing_points 필드:', data.breathing_points);
+                }
 
                 if (error && error.code !== 'PGRST116') { // PGRST116: 데이터 없음
                     console.error('데이터 로드 오류:', error);
@@ -1571,6 +1578,7 @@
                     document.getElementById('loginSection').style.display = 'none';
 
                     await loadUserData();
+                    console.log('loadUserData 완료 후 diaries 길이:', diaries.length);
                     displayDiaries(); // 로그인 후 감정일기 표시
                     console.log('사용자 로그인됨:', session.user.email);
                 }
