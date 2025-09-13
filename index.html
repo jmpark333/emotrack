@@ -1036,6 +1036,9 @@
             // UI 업데이트 (평온포인트 카드 포함)
             updateUI();
 
+            // 평온포인트 직접 업데이트 (강제 갱신)
+            document.getElementById('points').textContent = userData.points;
+
             // 레벨업 체크
             if(userData.points >= userData.level * 100) {
                 userData.level++;
@@ -1047,6 +1050,9 @@
             } else {
                 updateLevelProgress();
             }
+
+            // 데이터베이스에 저장
+            await saveUserDataToSupabase();
         }
         
         // 사용자 데이터 저장 (통합 함수)
