@@ -623,6 +623,7 @@
     <script>
         // Supabase 클라이언트 (전역 변수)
         let supabaseClient = null;
+        let supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
         let currentUser = null;
 
         // Supabase 초기화 함수
@@ -631,7 +632,6 @@
                 waitForSupabase(() => {
                     // Supabase 초기화
                     const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
-                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
 
                     try {
                         // Supabase v2 올바른 초기화 방식
@@ -1071,6 +1071,25 @@
                     userId: currentUser.id,
                     userIdType: typeof currentUser.id
                 });
+
+                // 네트워크 연결성 테스트
+                console.log('네트워크 연결성 테스트 시작...');
+                try {
+                    const networkTest = await fetch('https://hpejebnqhgojfxttfbal.supabase.co/rest/v1/', {
+                        method: 'GET',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`
+                        }
+                    });
+                    console.log('네트워크 테스트 결과:', {
+                        status: networkTest.status,
+                        ok: networkTest.ok,
+                        statusText: networkTest.statusText
+                    });
+                } catch (networkError) {
+                    console.error('네트워크 연결성 테스트 실패:', networkError);
+                }
 
                 const queryStartTime = Date.now();
                 console.log('쿼리 시작 시간:', queryStartTime);
