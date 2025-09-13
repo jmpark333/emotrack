@@ -1145,10 +1145,14 @@
             // 오늘 획득 포인트 표시
             updateDailyPoints();
 
-            // 체크리스트 상태 복원
+            // 체크리스트 상태 복원 (이벤트 리스너 중복 추가 방지)
             document.querySelectorAll('.check-input').forEach(checkbox => {
                 checkbox.checked = userData.completedToday.includes(checkbox.id);
-                checkbox.addEventListener('change', handleCheck);
+                // 이벤트 리스너가 없는 경우에만 추가
+                if (!checkbox.hasAttribute('data-event-added')) {
+                    checkbox.addEventListener('change', handleCheck);
+                    checkbox.setAttribute('data-event-added', 'true');
+                }
             });
 
             updateProgress();
@@ -1192,8 +1196,8 @@
             // 현재 날짜를 lastCheck에 설정하여 하루 중에 체크 상태 유지
             userData.lastCheck = new Date().toDateString();
             
-            // 데이터 저장 및 백업
-            saveUserData();
+            // 데이터 즉시 저장 (데이터베이스에 바로 저장)
+            await saveUserDataToSupabase(); // 즉시 DB 저장
             await updateProgress();
             updateBadges();
 
@@ -1738,6 +1742,7 @@
                     await loadDiaries(); // 로그인 후 감정일기 로드
                     updateDiarySection(); // 일기 섹션 UI 업데이트
                     updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
+                    updateUI(); // 전체 UI 업데이트 (체크리스트 상태 복원 포함)
                     console.log('사용자 로그인됨:', session.user.email);
                 }
             } catch (error) {
