@@ -655,17 +655,31 @@
             }
 
             try {
+                console.log('📝 회원가입 시도:', { email, passwordLength: password.length });
+
                 const { data, error } = await supabase.auth.signUp({
                     email: email,
                     password: password
                 });
 
+                console.log('📋 Supabase 응답:', { data, error });
+
                 if (error) {
-                    showMessage('signupMessage', error.message, 'error');
+                    console.error('❌ Supabase 회원가입 오류:', error);
+                    showMessage('signupMessage', `오류: ${error.message}`, 'error');
                     return;
                 }
 
-                showMessage('signupMessage', '회원가입이 완료되었습니다. 이메일을 확인해주세요.', 'success');
+                if (data && data.user && !data.user.email_confirmed_at) {
+                    console.log('✅ 회원가입 성공 (이메일 확인 필요)');
+                    showMessage('signupMessage', '회원가입이 완료되었습니다. 이메일을 확인해주세요.', 'success');
+                } else if (data && data.user) {
+                    console.log('✅ 회원가입 성공 (즉시 로그인)');
+                    showMessage('signupMessage', '회원가입이 완료되었습니다.', 'success');
+                } else {
+                    console.log('⚠️ 응답 데이터 없음');
+                    showMessage('signupMessage', '회원가입이 처리되었습니다.', 'success');
+                }
 
                 // 3초 후 로그인 탭으로 전환
                 setTimeout(() => {
@@ -674,7 +688,8 @@
                 }, 3000);
 
             } catch (error) {
-                showMessage('signupMessage', '회원가입 중 오류가 발생했습니다.', 'error');
+                console.error('💥 회원가입 시스템 오류:', error);
+                showMessage('signupMessage', `시스템 오류: ${error.message}`, 'error');
             }
         }
 
