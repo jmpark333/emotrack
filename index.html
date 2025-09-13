@@ -1294,22 +1294,34 @@
         }
 
         // 호흡법 타이머
-        function startBreathing() {
+        async function startBreathing() {
             alert("🌬️ 4초 들이마시기 → 7초 참기 → 8초 내쉬기\n\n지금 시작합니다. 화면을 보며 따라해주세요!");
-            
+
             let step = 0;
             const steps = [
                 { text: "들이마시기 (4초)", duration: 4000 },
                 { text: "참기 (7초)", duration: 7000 },
                 { text: "내쉬기 (8초)", duration: 8000 }
             ];
-            
+
             const interval = setInterval(() => {
                 alert(steps[step].text);
                 step++;
                 if(step >= steps.length) {
                     clearInterval(interval);
-                    alert("✅ 호흡법 완료! 이제 조금 더 평온해지셨나요?");
+
+                    // 호흡법 완료 시 10포인트 지급
+                    userData.points += 10;
+                    userData.totalPoints = (userData.totalPoints || 0) + 10;
+
+                    // DB에 저장
+                    await saveUserDataToSupabase();
+
+                    // UI 업데이트
+                    updateUI();
+                    updateLevelProgress();
+
+                    alert("✅ 호흡법 완료! 평온 포인트 10점 획득!\n이제 조금 더 평온해지셨나요?");
                 }
             }, steps[step]?.duration || 0);
         }

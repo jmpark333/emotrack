@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
+</head>
+<body>
+    <h1>Supabase 연결 테스트</h1>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const resultDiv = document.getElementById('result');
+
+        async function testSupabase() {
+            resultDiv.innerHTML += '<p>Supabase 클라이언트 초기화...</p>';
+
+            try {
+                // 1. 연결 테스트
+                const { data, error } = await supabaseClient.from('user_data').select('count', { count: 'exact', head: true });
+
+                if (error) {
+                    resultDiv.innerHTML += `<p style="color: red;">연결 오류: ${error.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">✅ Supabase 연결 성공!</p>`;
+                }
+
+                // 2. 인증 상태 테스트
+                const { data: { session }, error: authError } = await supabaseClient.auth.getSession();
+
+                if (authError) {
+                    resultDiv.innerHTML += `<p style="color: red;">인증 오류: ${authError.message}</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p>인증 상태: ${session ? '로그인됨' : '로그인되지 않음'}</p>`;
+                }
+
+                // 3. RLS 테스트
+                const { data: testData, error: testError } = await supabaseClient
+                    .from('user_data')
+                    .select('*')
+                    .limit(1);
+
+                if (testError) {
+                    resultDiv.innerHTML += `<p style="color: orange;">RLS 테스트: ${testError.message} (정상 - 로그인 필요)</p>`;
+                } else {
+                    resultDiv.innerHTML += `<p style="color: green;">✅ RLS 정상 작동</p>`;
+                }
+
+            } catch (err) {
+                resultDiv.innerHTML += `<p style="color: red;">예상치 못한 오류: ${err.message}</p>`;
+            }
+        }
+
+        testSupabase();
+    </script>
+</body>
+</html>
