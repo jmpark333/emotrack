@@ -1329,7 +1329,7 @@
         }
 
         // 연속일수 리셋 함수
-        function resetStreak(event) {
+        async function resetStreak(event) {
             event.stopPropagation(); // 카드 뒤집기 이벤트 방지
 
             if (confirm('연속일수를 리셋하시겠습니까?\\n시작일이 오늘로 변경되고 연속일수는 0이 됩니다.')) {
@@ -1342,8 +1342,10 @@
                 userData.completedToday = [];
                 userData.lastCheck = null;
 
-                // localStorage에 저장
-                localStorage.setItem('emotrack-data', JSON.stringify(userData));
+                // DB에 저장
+                if (currentUser && supabaseClient) {
+                    await saveUserDataToSupabase();
+                }
 
                 // UI 업데이트
                 document.getElementById('streak').textContent = '0';
