@@ -426,7 +426,7 @@
                 <!-- 로그인 폼 -->
                 <div id="loginForm" class="auth-form">
                     <h2>로그인</h2>
-                    <form onsubmit="login(); return false;">
+                    <form id="loginFormElement">
                         <label for="loginEmail">이메일</label>
                         <input type="email" id="loginEmail" placeholder="이메일" required autocomplete="email">
                         <label for="loginPassword">비밀번호</label>
@@ -439,7 +439,7 @@
                 <!-- 회원가입 폼 -->
                 <div id="signupForm" class="auth-form" style="display: none;">
                     <h2>회원가입</h2>
-                    <form onsubmit="signup(); return false;">
+                    <form id="signupFormElement">
                         <label for="signupEmail">이메일</label>
                         <input type="email" id="signupEmail" placeholder="이메일" required autocomplete="email">
                         <label for="signupPassword">비밀번호 (6자 이상)</label>
@@ -1432,6 +1432,18 @@
 
         // 초기화
         document.addEventListener('DOMContentLoaded', async function() {
+            // 폼 이벤트 리스너 추가
+            document.getElementById('loginFormElement')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('로그인 폼 제출됨');
+                login();
+            });
+
+            document.getElementById('signupFormElement')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('회원가입 폼 제출됨');
+                signup();
+            });
             // Supabase 초기화
             const supabaseInitialized = await initializeSupabase();
             if (!supabaseInitialized) {
