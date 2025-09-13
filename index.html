@@ -276,9 +276,17 @@
                     <div id="levelProgressDisplay" style="font-size: 1.0rem; font-weight: bold;">다음 레벨까지: 100포인트</div>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="points" style="margin-bottom: 5px;">0</div>
-                <div style="font-size: 0.9rem;">평온 포인트</div>
+            <div class="stat-card" id="pointsCard" onclick="flipPointsCard()" title="클릭하여 포인트 정보 확인">
+                <div class="card-front">
+                    <div class="stat-value" id="points" style="margin-bottom: 5px;">0</div>
+                    <div style="font-size: 0.9rem;">평온 포인트</div>
+                </div>
+                <div class="card-back">
+                    <div style="font-size: 1.0rem; font-weight: bold; margin-bottom: 10px;">📈 평온 포인트</div>
+                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.9);">
+                        총 획득 포인트
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -506,6 +514,12 @@
             if (card.classList.contains('flipped')) {
                 updateLevelProgressDisplay();
             }
+        }
+
+        // 평온포인트 카드 뒤집기 함수
+        function flipPointsCard() {
+            const card = document.getElementById('pointsCard');
+            card.classList.toggle('flipped');
         }
 
         // 시작일 표시 업데이트 함수
