@@ -1623,7 +1623,7 @@
         
         
         // 날짜 변경 확인 및 completedToday 배열 초기화
-        function checkDateChangeAndReset() {
+        async function checkDateChangeAndReset() {
             const today = new Date().toDateString();
             const lastCheck = userData.lastCheck;
 
@@ -1707,7 +1707,7 @@
             await checkAuthState();
 
             // 인증 후 데이터 로드가 완료된 후에 날짜 변경 확인
-            checkDateChangeAndReset();
+            await checkDateChangeAndReset();
 
             // 최종 UI 업데이트 (인증 상태와 데이터 로딩 완료 후)
             updateUI();
