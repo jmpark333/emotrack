@@ -612,14 +612,17 @@
             const isAllCompleted = completed === total;
 
             // 오늘 모든 항목을 완료했는데 연속일수가 증가하지 않은 경우
-            if(isAllCompleted && userData.lastCheck === today && userData.streak === 1) {
-                // 어제도 활동했을 가능성이 높으므로 연속일수를 2로 조정
-                if(confirm('오늘 모든 항목을 완료했지만 연속일수가 1일로 표시됩니다.\n어제도 활동하셨다면 연속일수를 2일로 수정하시겠습니까?')) {
-                    userData.streak = 2;
-                    userData.lastCheck = today;
-                    saveUserData();
-                    updateUI();
-                    alert('연속일수가 2일로 수정되었습니다!');
+            if(isAllCompleted && userData.lastCheck === today) {
+                // 어제도 활동했음에도 불구하고 연속일수가 증가하지 않은 경우
+                if(userData.lastCheck === today && userData.completedToday.length === total) {
+                    // 어제 활동 여부 확인 (어제 lastCheck가 어제 날짜인지)
+                    if(confirm(`오늘 모든 항목을 완료했는데 연속일수가 ${userData.streak}일로 표시됩니다.\n어제도 활동하셨다면 연속일수를 ${userData.streak + 1}일로 수정하시겠습니까?`)) {
+                        userData.streak++;
+                        userData.lastCheck = today;
+                        saveUserData();
+                        updateUI();
+                        alert(`연속일수가 ${userData.streak}일로 수정되었습니다!`);
+                    }
                 }
             }
         }
