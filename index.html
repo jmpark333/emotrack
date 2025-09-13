@@ -1033,6 +1033,9 @@
             // 오늘 획득 포인트 업데이트
             updateDailyPoints();
 
+            // UI 업데이트 (평온포인트 카드 포함)
+            updateUI();
+
             // 레벨업 체크
             if(userData.points >= userData.level * 100) {
                 userData.level++;
