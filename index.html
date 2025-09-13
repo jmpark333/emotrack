@@ -54,17 +54,33 @@
             flex: 1;
             margin: 0 5px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.6s, box-shadow 0.2s;
+            transform-style: preserve-3d;
+            position: relative;
+            height: 120px;
+            cursor: pointer;
         }
 
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+        .stat-card.flipped {
+            transform: rotateY(180deg);
         }
 
-        .stat-card:active {
-            transform: translateY(0);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            padding: 10px;
         }
         .stat-value {
             font-size: 1.5rem;
@@ -233,10 +249,18 @@
         </div>
         
         <div class="stats">
-            <div class="stat-card" onclick="showStartDate()" style="cursor: pointer;" title="클릭하여 시작일 확인">
-                <div class="stat-value" id="streak">0</div>
-                <div>연속 일수</div>
-                <div style="font-size: 0.7rem; margin-top: 5px; color: rgba(255,255,255,0.7);" id="startDateDisplay"></div>
+            <div class="stat-card" id="streakCard" onclick="flipCard()" title="클릭하여 시작일 확인">
+                <div class="card-front">
+                    <div class="stat-value" id="streak">0</div>
+                    <div>연속 일수</div>
+                </div>
+                <div class="card-back">
+                    <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px;">📅 시작일</div>
+                    <div id="startDateDisplay" style="font-size: 0.8rem; margin-bottom: 10px;">시작일 없음</div>
+                    <button onclick="resetStreak(event)" style="background: #ff6b6b; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#ff5252'" onmouseout="this.style.background='#ff6b6b'">
+                        🔄 리셋
+                    </button>
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="level">1</div>
@@ -445,8 +469,19 @@
             document.getElementById('dailyPoints').textContent = dailyPoints;
         }
 
-        // 시작일 표시 함수
-        function showStartDate() {
+        // 카드 뒤집기 함수
+        function flipCard() {
+            const card = document.getElementById('streakCard');
+            card.classList.toggle('flipped');
+
+            // 뒷면이 보일 때 시작일 정보 업데이트
+            if (card.classList.contains('flipped')) {
+                updateStartDateDisplay();
+            }
+        }
+
+        // 시작일 표시 업데이트 함수
+        function updateStartDateDisplay() {
             const startDateDisplay = document.getElementById('startDateDisplay');
 
             if (userData.startDate) {
@@ -456,18 +491,38 @@
                     month: 'long',
                     day: 'numeric'
                 });
-
-                if (startDateDisplay.textContent === '') {
-                    startDateDisplay.textContent = `📅 ${formattedDate}`;
-                } else {
-                    startDateDisplay.textContent = '';
-                }
+                startDateDisplay.textContent = formattedDate;
             } else {
-                if (startDateDisplay.textContent === '') {
-                    startDateDisplay.textContent = '시작일 없음';
-                } else {
-                    startDateDisplay.textContent = '';
-                }
+                startDateDisplay.textContent = '시작일 없음';
+            }
+        }
+
+        // 연속일수 리셋 함수
+        function resetStreak(event) {
+            event.stopPropagation(); // 카드 뒤집기 이벤트 방지
+
+            if (confirm('연속일수를 리셋하시겠습니까?\\n시작일이 오늘로 변경되고 연속일수는 0이 됩니다.')) {
+                const today = new Date().toDateString();
+
+                // 데이터 리셋
+                userData.startDate = null;
+                userData.lastCompletedDate = null;
+                userData.streak = 0;
+                userData.completedToday = [];
+                userData.lastCheck = null;
+
+                // localStorage에 저장
+                localStorage.setItem('emotrack-data', JSON.stringify(userData));
+
+                // UI 업데이트
+                document.getElementById('streak').textContent = '0';
+                updateStartDateDisplay();
+                updateProgress();
+
+                // 카드 앞면으로 돌아가기
+                document.getElementById('streakCard').classList.remove('flipped');
+
+                alert('연속일수가 리셋되었습니다.\\n오늘부터 다시 시작해보세요!');
             }
         }
 
@@ -484,9 +539,21 @@
 
             // 날짜 차이 계산 (밀리초 → 일)
             const diffTime = Math.abs(today - startDate);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // 시작일 포함
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            return diffDays;
+            // 연속 사용 확인: 마지막 완료일로부터 하루가 지났는지 확인
+            if (userData.lastCompletedDate) {
+                const lastCompleted = new Date(userData.lastCompletedDate);
+                lastCompleted.setHours(0, 0, 0, 0);
+                const daysSinceLastComplete = Math.floor((today - lastCompleted) / (1000 * 60 * 60 * 24));
+
+                // 하루 이상 지났으면 연속이 끊김
+                if (daysSinceLastComplete > 1) {
+                    return 0;
+                }
+            }
+
+            return diffDays + 1; // 시작일 포함
         }
 
         // 연속 일수 업데이트 함수
