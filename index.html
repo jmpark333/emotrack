@@ -1299,7 +1299,7 @@
         }
 
         // 호흡법 타이머
-        async function startBreathing() {
+        function startBreathing() {
             alert("🌬️ 4초 들이마시기 → 7초 참기 → 8초 내쉬기\n\n지금 시작합니다. 화면을 보며 따라해주세요!");
 
             let step = 0;
@@ -1319,12 +1319,12 @@
                     userData.points += 10;
                     userData.totalPoints = (userData.totalPoints || 0) + 10;
 
-                    // DB에 저장
-                    await saveUserDataToSupabase();
-
-                    // UI 업데이트
-                    updateUI();
-                    updateLevelProgress();
+                    // DB에 저장 (async 처리)
+                    saveUserDataToSupabase().then(() => {
+                        // UI 업데이트
+                        updateUI();
+                        updateLevelProgress();
+                    });
 
                     alert("✅ 호흡법 완료! 평온 포인트 10점 획득!\n이제 조금 더 평온해지셨나요?");
                 }
