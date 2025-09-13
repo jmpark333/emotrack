@@ -792,10 +792,10 @@
 
         // 로그아웃
         async function logout() {
-            if (!supabase) return;
+            if (!supabaseClient || !supabaseClient.auth) return;
 
             try {
-                await supabase.auth.signOut();
+                await supabaseClient.auth.signOut();
                 currentUser = null;
 
                 // UI 업데이트
@@ -873,10 +873,10 @@
 
         // 사용자 데이터 저장 (Supabase)
         async function saveUserDataToSupabase() {
-            if (!currentUser || !supabase) return;
+            if (!currentUser || !supabaseClient) return;
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('user_data')
                     .upsert({
                         user_id: currentUser.id,
