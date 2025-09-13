@@ -153,6 +153,13 @@
             border: 1px solid #ddd;
             font-size: 0.9rem;
         }
+        .diary-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 10px;
+            margin-bottom: 2px;
+        }
         .diary-item {
             background: white;
             padding: 10px;
@@ -498,9 +505,12 @@
         
         <div class="check-item">
             <label for="evening2">📖 감정 일기 작성</label>
-            <input type="text" id="wifeAction" class="diary-input" placeholder="아내의 행동 (예: 고성 질문)">
-            <input type="text" id="myReaction" class="diary-input" placeholder="내 첫 반응 (예: 죄책감 + 분노)">
-            <input type="text" id="reinterpretation" class="diary-input" placeholder="재해석 (예: 그녀는 불안해서 그런 거야)">
+            <label for="wifeAction" class="diary-label">아내의 행동</label>
+            <input type="text" id="wifeAction" class="diary-input" placeholder="아내의 행동 (예: 고성 질문)" aria-label="아내의 행동">
+            <label for="myReaction" class="diary-label">내 첫 반응</label>
+            <input type="text" id="myReaction" class="diary-input" placeholder="내 첫 반응 (예: 죄책감 + 분노)" aria-label="내 첫 반응">
+            <label for="reinterpretation" class="diary-label">재해석</label>
+            <input type="text" id="reinterpretation" class="diary-input" placeholder="재해석 (예: 그녀는 불안해서 그런 거야)" aria-label="재해석">
             <button class="btn" onclick="saveDiary()">💾 저장하고 체크 완료</button>
         </div>
         
