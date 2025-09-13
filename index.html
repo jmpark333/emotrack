@@ -267,10 +267,21 @@
                     </button>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-value" id="level">1</div>
-                <div>평온 레벨</div>
-                <div style="font-size: 0.7rem; margin-top: 5px;" id="levelProgress">다음 레벨까지: 100포인트</div>
+            <div class="stat-card" id="levelCard" onclick="flipLevelCard()" title="클릭하여 레벨 진행도 확인">
+                <div class="card-front">
+                    <div class="stat-value" id="level" style="margin-bottom: 5px;">1</div>
+                    <div style="font-size: 0.9rem;">평온 레벨</div>
+                </div>
+                <div class="card-back">
+                    <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px;">📊 레벨 진행도</div>
+                    <div id="levelProgressDisplay" style="font-size: 0.8rem; margin-bottom: 8px;">다음 레벨까지: 100포인트</div>
+                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">
+                        현재 포인트: <span id="currentPointsDisplay">0</span>
+                    </div>
+                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8);">
+                        다음 레벨: <span id="nextLevelDisplay">2</span>
+                    </div>
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="points">0</div>
@@ -465,7 +476,18 @@
             const pointsRemaining = Math.max(0, pointsNeeded - userData.points);
             const progressPercentage = userData.points >= pointsNeeded ? 100 : (userData.points / pointsNeeded) * 100;
 
-            document.getElementById('levelProgress').textContent = `다음 레벨까지: ${pointsRemaining}포인트`;
+            // 앞면에서는 레벨 진행도 표시 제거 (뒷면에서만 표시)
+        }
+
+        // 레벨 진행도 디스플레이 업데이트 함수
+        function updateLevelProgressDisplay() {
+            const pointsNeeded = userData.level * 100;
+            const pointsRemaining = Math.max(0, pointsNeeded - userData.points);
+            const progressPercentage = userData.points >= pointsNeeded ? 100 : (userData.points / pointsNeeded) * 100;
+
+            document.getElementById('levelProgressDisplay').textContent = `다음 레벨까지: ${pointsRemaining}포인트`;
+            document.getElementById('currentPointsDisplay').textContent = userData.points;
+            document.getElementById('nextLevelDisplay').textContent = userData.level + 1;
         }
 
         // 오늘 획득 포인트 업데이트
@@ -474,7 +496,7 @@
             document.getElementById('dailyPoints').textContent = dailyPoints;
         }
 
-        // 카드 뒤집기 함수
+        // 연속일수 카드 뒤집기 함수
         function flipCard() {
             const card = document.getElementById('streakCard');
             card.classList.toggle('flipped');
@@ -482,6 +504,17 @@
             // 뒷면이 보일 때 시작일 정보 업데이트
             if (card.classList.contains('flipped')) {
                 updateStartDateDisplay();
+            }
+        }
+
+        // 평온레벨 카드 뒤집기 함수
+        function flipLevelCard() {
+            const card = document.getElementById('levelCard');
+            card.classList.toggle('flipped');
+
+            // 뒷면이 보일 때 레벨 진행도 정보 업데이트
+            if (card.classList.contains('flipped')) {
+                updateLevelProgressDisplay();
             }
         }
 
