@@ -438,26 +438,25 @@
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayString = yesterday.toDateString();
 
-            const total = document.querySelectorAll('.check-input').length;
             const completed = userData.completedToday.length;
 
-            // 하루에 모든 항목을 완료해야 연속 일수로 인정
-            const isAllCompleted = completed === total;
-
-            if(isAllCompleted) {
-                if(userData.lastCheck === yesterdayString) {
-                    // 어제도 모두 완료했으면 연속 일수 증가
-                    userData.streak++;
-                    userData.lastCheck = today;
-                } else if(userData.lastCheck !== today) {
-                    // 오늘 처음 모두 완료했으면 연속 일수 1로 설정
-                    userData.streak = 1;
-                    userData.lastCheck = today;
-                }
-                // 오늘 이미 모두 완료해서 lastCheck가 오늘인 경우 아무것도 하지 않음
-            } else {
-                // 모든 항목을 완료하지 않으면 연속 일수 유지
-                // (연속 일수는 checkDateChangeAndReset 함수에서 날짜 변경 시 초기화됨)
+            // 오늘 첫 번째 체크이고 어제도 체크한 경우 연속 일수 증가
+            if(completed > 0 && userData.lastCheck === yesterdayString) {
+                userData.streak++;
+                userData.lastCheck = today;
+            }
+            // 어제 체크하지 않았는데 오늘 체크한 경우 연속 일수 1로 설정
+            else if(completed > 0 && !userData.lastCheck) {
+                userData.streak = 1;
+                userData.lastCheck = today;
+            }
+            // 어제 체크했는데 오늘 아직 체크하지 않은 경우
+            else if(completed === 0 && userData.lastCheck === yesterdayString) {
+                // 아직 아무것도 체크하지 않은 것이므로 연속 일수 유지
+            }
+            // 어제 체크했는데 오늘 일부만 체크한 경우
+            else if(completed > 0 && userData.lastCheck === today) {
+                // 이미 연속 일수가 증가했으므로 아무것도 하지 않음
             }
         }
 
