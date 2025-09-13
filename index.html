@@ -1057,22 +1057,27 @@
                 if (data) {
                     // DB에서 가져온 데이터로 업데이트 (완전히 덮어쓰지 않음)
                     const dbCompletedToday = data.completed_today || [];
-                    const today = new Date().toDateString();
-                    const dbLastCheck = data.last_check;
+                    const today = new Date();
+                    const dbLastCheck = data.last_check ? new Date(data.last_check) : null;
 
-                    console.log('DB 데이터 로드:', {
+                    const isSameDay = dbLastCheck &&
+                        today.getFullYear() === dbLastCheck.getFullYear() &&
+                        today.getMonth() === dbLastCheck.getMonth() &&
+                        today.getDate() === dbLastCheck.getDate();
+
+                    console.log('DB 데이터 로드 (날짜 비교):', {
                         dbCompletedToday,
-                        dbLastCheck,
-                        today,
-                        lastCheckSame: dbLastCheck === today
+                        dbLastCheck: data.last_check,
+                        today: today.toISOString(),
+                        isSameDay
                     });
 
                     // 오늘 날짜의 데이터인 경우에만 completedToday 유지
-                    if (dbLastCheck === today) {
+                    if (isSameDay) {
                         userData.completedToday = dbCompletedToday;
                         console.log('오늘 날짜의 체크리스트 상태 복원:', dbCompletedToday);
                     } else {
-                        // 날짜가 다른 경우 빈 배열로 초기화
+                        // 날짜가 다른 경우 빈 배열으로 초기화
                         userData.completedToday = [];
                         console.log('다른 날짜의 데이터: 체크리스트 초기화');
                     }
@@ -1210,7 +1215,7 @@
             }
 
             // 현재 날짜를 lastCheck에 설정하여 하루 중에 체크 상태 유지
-            userData.lastCheck = new Date().toDateString();
+            userData.lastCheck = new Date().toISOString();
 
             // 데이터 즉시 저장 (데이터베이스에 바로 저장)
             await saveUserDataToSupabase(); // 즉시 DB 저장
@@ -1333,7 +1338,7 @@
             event.stopPropagation(); // 카드 뒤집기 이벤트 방지
 
             if (confirm('연속일수를 리셋하시겠습니까?\\n시작일이 오늘로 변경되고 연속일수는 0이 됩니다.')) {
-                const today = new Date().toDateString();
+                const today = new Date().toISOString();
 
                 // 데이터 리셋 (시작일은 오늘로 설정)
                 userData.startDate = today;
@@ -1391,7 +1396,7 @@
 
         // 연속 일수 업데이트 함수
         async function updateStreak() {
-            const today = new Date().toDateString();
+            const today = new Date().toISOString();
             const completed = userData.completedToday.length;
             const total = document.querySelectorAll('.check-input').length;
             const isAllCompleted = completed === total;
@@ -1624,43 +1629,44 @@
         
         // 날짜 변경 확인 및 completedToday 배열 초기화
         async function checkDateChangeAndReset() {
-            const today = new Date().toDateString();
-            const lastCheck = userData.lastCheck;
+            const today = new Date();
+            const lastCheck = userData.lastCheck ? new Date(userData.lastCheck) : null;
 
-            console.log('날짜 변경 확인:', { today, lastCheck, completedToday: userData.completedToday });
+            const isSameDay = lastCheck &&
+                today.getFullYear() === lastCheck.getFullYear() &&
+                today.getMonth() === lastCheck.getMonth() &&
+                today.getDate() === lastCheck.getDate();
 
-            if (lastCheck && lastCheck !== today) {
-                // 날짜가 변경된 경우에만 초기화
-                const yesterday = new Date(lastCheck);
-                const currentDate = new Date(today);
-                const daysDiff = Math.floor((currentDate - yesterday) / (1000 * 60 * 60 * 24));
+            console.log('날짜 변경 확인:', {
+                today: today.toISOString(),
+                lastCheck: userData.lastCheck,
+                isSameDay,
+                completedToday: userData.completedToday
+            });
 
-                console.log('날짜 변경 감지:', { daysDiff, yesterday, currentDate });
+            if (lastCheck && !isSameDay) {
+                // 날짜가 변경된 경우
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
 
-                if (daysDiff === 1) {
-                    // 하루가 지난 경우: 어제 활동했으면 연속 유지
-                    if (userData.lastCompletedDate === lastCheck) {
-                        console.log('연속 사용 중입니다.');
-                    } else {
-                        // 어제 모든 항목을 완료하지 않았으면 연속 초기화
-                        userData.startDate = today;
-                        userData.streak = 0;
-                        console.log('어제 모든 항목을 완료하지 않았습니다. 연속이 초기화됩니다.');
-                    }
-                } else if (daysDiff > 1) {
-                    // 여러 날이 지난 경우: 연속 초기화
-                    userData.startDate = null;
+                const isLastCheckYesterday = lastCheck.getFullYear() === yesterday.getFullYear() &&
+                    lastCheck.getMonth() === yesterday.getMonth() &&
+                    lastCheck.getDate() === yesterday.getDate();
+
+                console.log('날짜 변경 감지:', { isLastCheckYesterday });
+
+                if (!isLastCheckYesterday) {
+                    // 마지막 체크가 어제가 아니면 연속 기록 초기화
                     userData.streak = 0;
-                    userData.lastCompletedDate = null;
-                    console.log('여러 날이 지났습니다. 연속이 초기화됩니다.');
+                    userData.startDate = null; // 시작일도 리셋
+                    console.log('연속 기록이 끊겼습니다. 연속 일수를 초기화합니다.');
                 }
 
-                // completedToday 배열 초기화 (오늘의 체크리스트만 초기화)
+                // completedToday 배열과 오늘의 포인트 초기화
                 userData.completedToday = [];
-                userData.breathingPoints = 0; // 오늘의 호흡법 포인트도 초기화
-                // userData.points = 0; // 총 누적 포인트는 초기화하지 않음 (레벨 유지)
+                userData.breathingPoints = 0;
 
-                // 변경된 데이터 저장 (DB에만 저장)
+                // 변경된 데이터 저장
                 if (currentUser && supabaseClient) {
                     await saveUserDataToSupabase();
                 }
@@ -1669,16 +1675,8 @@
                 updateUI();
 
                 console.log('날짜 변경으로 completedToday 배열이 초기화되었습니다.');
-            } else if (!lastCheck && userData.completedToday.length > 0) {
-                // lastCheck가 없지만 completedToday에 데이터가 있는 경우
-                // 오늘 날짜로 lastCheck 설정하여 데이터 유지
-                userData.lastCheck = today;
-                if (currentUser && supabaseClient) {
-                    await saveUserDataToSupabase();
-                }
-                console.log('lastCheck를 오늘 날짜로 설정했습니다.');
             } else {
-                console.log('오늘 날짜로 체크리스트 상태 유지');
+                console.log('오늘 날짜이거나 첫 사용입니다. 체크리스트 상태를 유지합니다.');
             }
         }
 
