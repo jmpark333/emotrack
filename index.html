@@ -764,10 +764,21 @@
             }
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                console.log('🔐 로그인 시도:', { email });
+
+                // Supabase 클라이언트 상태 확인
+                console.log('로그인 전 클라이언트 상태:', {
+                    supabaseClient: !!supabaseClient,
+                    auth: !!supabaseClient?.auth,
+                    signInWithPassword: typeof supabaseClient?.auth?.signInWithPassword
+                });
+
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
+
+                console.log('로그인 응답:', { data, error });
 
                 if (error) {
                     showMessage('loginMessage', error.message, 'error');
@@ -786,7 +797,8 @@
                 updateUI();
 
             } catch (error) {
-                showMessage('loginMessage', '로그인 중 오류가 발생했습니다.', 'error');
+                console.error('💥 로그인 시스템 오류:', error);
+                showMessage('loginMessage', `시스템 오류: ${error.message}`, 'error');
             }
         }
 
