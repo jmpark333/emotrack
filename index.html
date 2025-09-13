@@ -790,6 +790,54 @@
             }
         }
 
+        // 새 사용자 데이터 생성
+        async function createNewUserData() {
+            if (!currentUser || !supabaseClient) return;
+
+            try {
+                const newUserData = {
+                    user_id: currentUser.id,
+                    streak: 0,
+                    level: 1,
+                    points: 0,
+                    last_check: null,
+                    completed_today: [],
+                    total_points: 0,
+                    start_date: null,
+                    last_completed_date: null
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('user_data')
+                    .insert([newUserData])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('사용자 데이터 생성 오류:', error);
+                    return;
+                }
+
+                console.log('새 사용자 데이터 생성 성공:', data);
+
+                // userData 업데이트
+                userData = {
+                    streak: data.streak || 0,
+                    level: data.level || 1,
+                    points: data.points || 0,
+                    lastCheck: data.last_check,
+                    completedToday: data.completed_today || [],
+                    totalPoints: data.total_points || 0,
+                    startDate: data.start_date,
+                    lastCompletedDate: data.last_completed_date
+                };
+
+                updateUI();
+            } catch (error) {
+                console.error('사용자 데이터 생성 중 예외 오류:', error);
+            }
+        }
+
         // 로그아웃
         async function logout() {
             if (!supabaseClient || !supabaseClient.auth) return;
@@ -839,14 +887,24 @@
             }
 
             try {
+                console.log('사용자 데이터 조회 시도:', { userId: currentUser.id });
+
                 const { data, error } = await supabaseClient
                     .from('user_data')
                     .select('*')
                     .eq('user_id', currentUser.id)
                     .single();
 
+                console.log('데이터 조회 결과:', { data, error });
+
                 if (error && error.code !== 'PGRST116') { // PGRST116: 데이터 없음
                     console.error('데이터 로드 오류:', error);
+
+                    // 406 오류인 경우 새 사용자 데이터 생성
+                    if (error.code === '406') {
+                        console.log('새 사용자 데이터 생성...');
+                        await createNewUserData();
+                    }
                     return;
                 }
 
@@ -1417,7 +1475,7 @@
                     document.getElementById('loginSection').style.display = 'none';
 
                     await loadUserData();
-                    console.log('사용자 로그인됨:', user.email);
+                    console.log('사용자 로그인됨:', session.user.email);
                 }
             } catch (error) {
                 console.error('인증 상태 확인 오류:', error);
