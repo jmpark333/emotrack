@@ -895,7 +895,8 @@
                     totalPoints: 0,
                     startDate: null,
                     lastCompletedDate: null,
-                    diaries: []
+                    diaries: [],
+                    breathingPoints: 0
                 };
                 userData = localData;
 
@@ -936,7 +937,8 @@
                         totalPoints: data.total_points || 0,
                         startDate: data.start_date,
                         lastCompletedDate: data.last_completed_date,
-                        diaries: data.diaries || []
+                        diaries: data.diaries || [],
+                        breathingPoints: data.breathing_points || 0
                     };
 
                     // diaries 배열도 로드
@@ -979,6 +981,7 @@
                         start_date: userData.startDate,
                         last_completed_date: userData.lastCompletedDate,
                         diaries: userData.diaries || [],
+                        breathing_points: userData.breathingPoints || 0,
                         updated_at: new Date().toISOString()
                     }, {
                         onConflict: 'user_id'
@@ -1139,8 +1142,10 @@
 
         // 오늘 획득 포인트 업데이트
         function updateDailyPoints() {
-            const dailyPoints = userData.completedToday.length * 10;
-            document.getElementById('dailyPoints').textContent = dailyPoints;
+            const checklistPoints = userData.completedToday.length * 10;
+            const breathingPoints = userData.breathingPoints || 0;
+            const totalDailyPoints = checklistPoints + breathingPoints;
+            document.getElementById('dailyPoints').textContent = totalDailyPoints;
         }
 
         // 연속일수 카드 뒤집기 함수
@@ -1348,12 +1353,14 @@
                     // 호흡법 완료 시 10포인트 지급
                     userData.points += 10;
                     userData.totalPoints = (userData.totalPoints || 0) + 10;
+                    userData.breathingPoints = (userData.breathingPoints || 0) + 10;
 
                     // DB에 저장 (async 처리)
                     saveUserDataToSupabase().then(() => {
                         // UI 업데이트
                         updateUI();
                         updateLevelProgress();
+                        updateDailyPoints();
                     });
 
                     alert("✅ 호흡법 완료! 평온 포인트 10점 획득!\n이제 조금 더 평온해지셨나요?");
