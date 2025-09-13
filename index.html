@@ -581,6 +581,36 @@
             </div>
             <p id="rewardText">모든 체크리스트를 완료하면 보상이 열립니다!</p>
         </div>
+
+        <!-- 오늘 획득 포인트 상세 정보 -->
+        <div class="daily-points-summary" style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 10px; border: 2px solid #dee2e6;">
+            <h4 style="margin: 0 0 15px 0; text-align: center; color: #495057; font-size: 1.1rem;">
+                📊 오늘 획득 포인트 요약
+            </h4>
+            <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div style="text-align: center; min-width: 120px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 5px;">📋</div>
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 5px;">체크 완료</div>
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #28a745;" id="checklistPoints">0</div>
+                    <div style="font-size: 0.8rem; color: #6c757d;">포인트</div>
+                </div>
+                <div style="text-align: center; min-width: 120px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 5px;">🧘</div>
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 5px;">긴급 호흡법</div>
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #17a2b8;" id="breathingPointsDisplay">0</div>
+                    <div style="font-size: 0.8rem; color: #6c757d;">포인트</div>
+                </div>
+                <div style="text-align: center; min-width: 120px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 10px; border-radius: 8px;">
+                    <div style="font-size: 1.8rem; margin-bottom: 5px;">🏆</div>
+                    <div style="font-size: 0.9rem; margin-bottom: 5px;">총 획득 포인트</div>
+                    <div style="font-size: 1.5rem; font-weight: bold;" id="totalDailyPoints">0</div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">포인트</div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #6c757d;">
+                <span id="dailyBreakdown">체크리스트 0개 완료 (0점) + 긴급호흡법 0회 완료 (0점) = 총 0점</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -806,6 +836,7 @@
                 updateUI();
                 await loadDiaries(); // 로그인 후 감정일기 로드
                 updateDiarySection(); // 일기 섹션 UI 업데이트
+                updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
 
             } catch (error) {
                 console.error('💥 로그인 시스템 오류:', error);
@@ -874,8 +905,9 @@
                 document.getElementById('userSection').style.display = 'none';
                 document.getElementById('loginSection').style.display = 'block';
                 updateDiarySection(); // 일기 섹션 UI 업데이트
+                updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
 
-                // 기본 데이터로 초기화
+                // 모든 데이터 초기화 (비로그인 상태)
                 userData = {
                     streak: 0,
                     level: 1,
@@ -884,10 +916,13 @@
                     completedToday: [],
                     totalPoints: 0,
                     startDate: null,
-                    lastCompletedDate: null
+                    lastCompletedDate: null,
+                    breathingPoints: 0
                 };
 
+                diaries = [];
                 updateUI();
+                displayDiaries(); // 일기 목록도 비우기
 
             } catch (error) {
                 console.error('로그아웃 오류:', error);
@@ -905,6 +940,44 @@
             } else {
                 loginPrompt.style.display = 'block';
                 diaryForm.style.display = 'none';
+            }
+        }
+
+        // 체크리스트 섹션 UI 업데이트
+        function updateChecklistSection() {
+            const isLoggedIn = currentUser && supabaseClient;
+            const checkboxes = document.querySelectorAll('.check-input');
+            const emergencyBtn = document.querySelector('.emergency-btn');
+
+            checkboxes.forEach(checkbox => {
+                checkbox.disabled = !isLoggedIn;
+                if (!isLoggedIn) {
+                    checkbox.checked = false;
+                }
+            });
+
+            if (emergencyBtn) {
+                emergencyBtn.disabled = !isLoggedIn;
+            }
+
+            // 비로그인 상태 메시지 표시
+            let checklistMessage = document.getElementById('checklistMessage');
+            if (!checklistMessage) {
+                checklistMessage = document.createElement('div');
+                checklistMessage.id = 'checklistMessage';
+                checklistMessage.style.cssText = 'color: #666; padding: 15px; background: #f5f5f5; border-radius: 8px; margin-bottom: 20px; text-align: center;';
+
+                const checklistContainer = document.querySelector('.checklist');
+                if (checklistContainer) {
+                    checklistContainer.parentNode.insertBefore(checklistMessage, checklistContainer);
+                }
+            }
+
+            if (isLoggedIn) {
+                checklistMessage.style.display = 'none';
+            } else {
+                checklistMessage.innerHTML = '🔒 체크리스트를 사용하려면 로그인이 필요합니다.<br>모든 데이터는 안전하게 데이터베이스에 저장됩니다.';
+                checklistMessage.style.display = 'block';
             }
         }
 
@@ -948,8 +1021,8 @@
         // 사용자 데이터 로드
         async function loadUserData() {
             if (!currentUser || !supabaseClient) {
-                // 로그인하지 않은 경우 localStorage에서 로드
-                const localData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
+                // 로그인하지 않은 경우 모든 데이터 0으로 초기화
+                userData = {
                     streak: 0,
                     level: 1,
                     points: 0,
@@ -960,8 +1033,10 @@
                     lastCompletedDate: null,
                     breathingPoints: 0
                 };
-                userData = localData;
                 diaries = []; // 비로그인 시 일기 없음
+
+                // 비로그인 상태에서도 오늘 획득 포인트 UI 업데이트
+                updateDailyPoints();
                 return;
             }
 
@@ -1012,6 +1087,9 @@
             } catch (error) {
                 console.error('사용자 데이터 로드 오류:', error);
             }
+
+            // 오늘 획득 포인트 UI 업데이트
+            updateDailyPoints();
         }
 
         // 사용자 데이터 저장 (Supabase)
@@ -1080,9 +1158,16 @@
 
         // 체크 이벤트 처리
         async function handleCheck(e) {
+            // 비로그인 상태에서는 체크 불가
+            if (!currentUser || !supabaseClient) {
+                e.target.checked = false;
+                alert('로그인이 필요합니다!');
+                return;
+            }
+
             const id = e.target.id;
             const parent = e.target.parentElement;
-            
+
             if(e.target.checked) {
                 if(!userData.completedToday.includes(id)) {
                     userData.completedToday.push(id);
@@ -1131,20 +1216,11 @@
         
         // 사용자 데이터 저장 (통합 함수)
         async function saveUserData() {
-            // localStorage에도 저장 (호환성 유지)
-            localStorage.setItem('emotionalIndependence', JSON.stringify(userData));
-
-            // 세션 스토리지에도 백업 (로컬 스토리지가 클리어되는 경우 대비)
-            try {
-                sessionStorage.setItem('emotionalIndependence_backup', JSON.stringify(userData));
-            } catch (e) {
-                console.log('세션 스토리지 백업 실패:', e);
-            }
-
             // Supabase에 저장 (로그인한 경우)
             if (currentUser && supabaseClient) {
                 await saveUserDataToSupabase();
             }
+            // 비로그인 상태에서는 데이터를 저장하지 않음
         }
 
         // 사용자 데이터 저장 및 백업 (로컬 전용)
@@ -1195,7 +1271,20 @@
             const checklistPoints = userData.completedToday.length * 10;
             const breathingPoints = userData.breathingPoints || 0;
             const totalDailyPoints = checklistPoints + breathingPoints;
+
+            // 기존 오늘 획득 포인트 표시 업데이트
             document.getElementById('dailyPoints').textContent = totalDailyPoints;
+
+            // 상세 정보 업데이트
+            document.getElementById('checklistPoints').textContent = checklistPoints;
+            document.getElementById('breathingPointsDisplay').textContent = breathingPoints;
+            document.getElementById('totalDailyPoints').textContent = totalDailyPoints;
+
+            // 세부 내용 텍스트 업데이트
+            const completedCount = userData.completedToday.length;
+            const breathingCount = breathingPoints / 5; // 호흡법 완료 횟수 (5점당 1회)
+            document.getElementById('dailyBreakdown').textContent =
+                `체크리스트 ${completedCount}개 완료 (${checklistPoints}점) + 긴급호흡법 ${breathingCount}회 완료 (${breathingPoints}점) = 총 ${totalDailyPoints}점`;
         }
 
         // 연속일수 카드 뒤집기 함수
@@ -1380,6 +1469,11 @@
 
         // 호흡법 핸들러
         function handleBreathing() {
+            // 비로그인 상태에서는 사용 불가
+            if (!currentUser || !supabaseClient) {
+                alert('로그인이 필요합니다!');
+                return;
+            }
             startBreathing();
         }
 
@@ -1607,6 +1701,7 @@
 
             updateUI();
             updateDiarySection(); // 일기 섹션 초기 UI 설정
+            updateChecklistSection(); // 체크리스트 섹션 초기 UI 설정
         });
 
         // 인증 상태 확인
@@ -1633,6 +1728,7 @@
                     await loadUserData();
                     await loadDiaries(); // 로그인 후 감정일기 로드
                     updateDiarySection(); // 일기 섹션 UI 업데이트
+                    updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
                     console.log('사용자 로그인됨:', session.user.email);
                 }
             } catch (error) {
