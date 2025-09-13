@@ -593,6 +593,9 @@
                         console.log('클라이언트 타입:', typeof supabaseClient);
                         console.log('클라이언트 auth 객체:', supabaseClient.auth);
                         console.log('클라이언트 auth 타입:', typeof supabaseClient.auth);
+                        console.log('auth 객체의 메소드들:', Object.keys(supabaseClient.auth));
+                        console.log('signUp 메소드 존재 여부:', 'signUp' in supabaseClient.auth);
+                        console.log('signUp 메소드:', supabaseClient.auth.signUp);
                         resolve(true);
                     } catch (error) {
                         console.error('Supabase 클라이언트 초기화 실패:', error);
