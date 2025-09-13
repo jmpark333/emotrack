@@ -834,24 +834,28 @@
 
                 currentUser = data.user;
 
-                try {
-                    await loadUserData();
-                } catch (loadError) {
-                    console.error('사용자 데이터 로드 실패:', loadError);
-                    // 데이터 로드 실패 시에도 로그인은 완료 처리
-                    showMessage('loginMessage', '로그인 성공! 데이터 로드에 일부 문제가 있었지만 정상적으로 사용할 수 있습니다.', 'success');
-                }
-
-                // UI 업데이트
+                // 오프라인 모드를 가정하고 바로 UI 업데이트 (데이터 로딩은 비동기로 처리)
                 document.getElementById('userEmail').textContent = email;
                 document.getElementById('userSection').style.display = 'flex';
                 document.getElementById('loginSection').style.display = 'none';
 
                 closeAuthModal();
-                updateUI();
-                await loadDiaries(); // 로그인 후 감정일기 로드
-                updateDiarySection(); // 일기 섹션 UI 업데이트
-                updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
+                showMessage('loginMessage', '로그인 성공! 앱을 시작합니다.', 'success');
+
+                // 비동기로 데이터 로드 시도 (UI 블로킹 방지)
+                setTimeout(async () => {
+                    try {
+                        await loadUserData();
+                        console.log('백그라운드 데이터 로드 성공');
+                    } catch (loadError) {
+                        console.error('백그라운드 데이터 로드 실패:', loadError);
+                        // 실패해도 사용자는 이미 로그인 상태로 앱 사용 가능
+                    }
+                    updateUI();
+                    await loadDiaries(); // 로그인 후 감정일기 로드
+                    updateDiarySection(); // 일기 섹션 UI 업데이트
+                    updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
+                }, 100);
 
             } catch (error) {
                 console.error('💥 로그인 시스템 오류:', error);
@@ -1141,6 +1145,25 @@
                 let retryCount = 0;
                 const maxRetries = 2;
 
+                // 네트워크 연결성 미리 확인
+                try {
+                    console.log('네트워크 연결성 미리 확인...');
+                    const networkController = new AbortController();
+                    const networkTimeout = setTimeout(() => networkController.abort(), 3000);
+
+                    await fetch('https://api.supabase.com', {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        signal: networkController.signal
+                    });
+                    clearTimeout(networkTimeout);
+                    console.log('네트워크 연결 확인 완료');
+                } catch (networkError) {
+                    console.warn('네트워크 연결 불안정:', networkError);
+                    // 네트워크 문제 시 빠르게 오프라인 모드로 전환
+                    throw new Error('Network connectivity issue');
+                }
+
                 while (retryCount <= maxRetries) {
                     try {
                         console.log(`쿼리 시도 ${retryCount + 1}/${maxRetries + 1}`);
@@ -1164,8 +1187,9 @@
                         retryCount++;
 
                         if (retryCount <= maxRetries) {
-                            console.log(`쿼리 실패, 1초 후 재시도 (${retryCount}/${maxRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+                            const backoffTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // 지수 백오프, 최대 5초
+                            console.log(`쿼리 실패, ${backoffTime}ms 후 재시도 (${retryCount}/${maxRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, backoffTime));
                         }
 
                     } catch (timeoutError) {
@@ -1173,8 +1197,9 @@
                         retryCount++;
 
                         if (retryCount <= maxRetries) {
-                            console.log(`타임아웃, 1초 후 재시도 (${retryCount}/${maxRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            const backoffTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // 지수 백오프, 최대 5초
+                            console.log(`타임아웃, ${backoffTime}ms 후 재시도 (${retryCount}/${maxRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, backoffTime));
                         } else {
                             // 모든 재시도 실패 시 기본 데이터 사용
                             data = null;
@@ -1462,8 +1487,9 @@
                         saveRetryCount++;
 
                         if (saveRetryCount <= maxSaveRetries) {
-                            console.log(`저장 실패, 1초 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+                            const backoffTime = Math.min(1000 * Math.pow(2, saveRetryCount - 1), 5000); // 지수 백오프, 최대 5초
+                            console.log(`저장 실패, ${backoffTime}ms 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, backoffTime));
                         }
 
                     } catch (timeoutError) {
@@ -1471,8 +1497,9 @@
                         saveRetryCount++;
 
                         if (saveRetryCount <= maxSaveRetries) {
-                            console.log(`저장 타임아웃, 1초 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            const backoffTime = Math.min(1000 * Math.pow(2, saveRetryCount - 1), 5000); // 지수 백오프, 최대 5초
+                            console.log(`저장 타임아웃, ${backoffTime}ms 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, backoffTime));
                         } else {
                             // 모든 재시도 실패 시 에러 처리
                             data = null;
@@ -1646,11 +1673,37 @@
                 email: currentUser?.email
             });
 
-            // Supabase에 저장 (로그인한 경우)
+            // 로컬 세션 스토리지에 먼저 저장 (데이터 지속성 보장)
+            try {
+                const localData = {
+                    streak: userData.streak,
+                    level: userData.level,
+                    points: userData.points,
+                    lastCheck: userData.lastCheck,
+                    completedToday: userData.completedToday,
+                    totalPoints: userData.totalPoints,
+                    startDate: userData.startDate,
+                    lastCompletedDate: userData.lastCompletedDate,
+                    breathingPoints: userData.breathingPoints,
+                    savedAt: new Date().toISOString()
+                };
+                sessionStorage.setItem('cachedUserData', JSON.stringify(localData));
+                console.log('로컬 세션 스토리지에 데이터 저장 완료');
+            } catch (localError) {
+                console.error('로컬 저장 오류:', localError);
+            }
+
+            // Supabase에 저장 시도 (비동기, 실패해도 로컬 데이터는 보존)
             if (currentUser && supabaseClient) {
                 console.log('Supabase에 데이터 저장 시도...');
-                await saveUserDataToSupabase();
-                console.log('Supabase 데이터 저장 완료');
+                setTimeout(async () => {
+                    try {
+                        await saveUserDataToSupabase();
+                        console.log('Supabase 데이터 저장 완료');
+                    } catch (saveError) {
+                        console.error('Supabase 저장 실패 (로컬 데이터는 보존됨):', saveError);
+                    }
+                }, 0); // 다음 이벤트 루프에서 실행
             } else {
                 console.log('비로그인 상태에서는 데이터를 저장하지 않음');
             }
