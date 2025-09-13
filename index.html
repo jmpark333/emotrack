@@ -833,7 +833,14 @@
                 }
 
                 currentUser = data.user;
-                await loadUserData();
+
+                try {
+                    await loadUserData();
+                } catch (loadError) {
+                    console.error('사용자 데이터 로드 실패:', loadError);
+                    // 데이터 로드 실패 시에도 로그인은 완료 처리
+                    showMessage('loginMessage', '로그인 성공! 데이터 로드에 일부 문제가 있었지만 정상적으로 사용할 수 있습니다.', 'success');
+                }
 
                 // UI 업데이트
                 document.getElementById('userEmail').textContent = email;
@@ -1243,6 +1250,18 @@
                             breathingPoints: 0
                         };
                         updateUI();
+
+                        // 로그인 후 첫 사용이거나 데이터 조회 실패 시 새 데이터 생성 시도
+                        if (currentUser) {
+                            console.log('로그인 성공 후 데이터 조회 실패 - 새 사용자 데이터 생성 시도');
+                            setTimeout(async () => {
+                                try {
+                                    await createNewUserData();
+                                } catch (createError) {
+                                    console.error('새 사용자 데이터 생성 실패:', createError);
+                                }
+                            }, 1000); // 1초 후 시도
+                        }
 
                         // 오프라인 모드 안내
                         if (!document.getElementById('offline-mode-notice')) {
