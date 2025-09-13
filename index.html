@@ -915,22 +915,10 @@
                 updateDiarySection(); // 일기 섹션 UI 업데이트
                 updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
 
-                // 모든 데이터 초기화 (비로그인 상태)
-                userData = {
-                    streak: 0,
-                    level: 1,
-                    points: 0,
-                    lastCheck: null,
-                    completedToday: [],
-                    totalPoints: 0,
-                    startDate: null,
-                    lastCompletedDate: null,
-                    breathingPoints: 0
-                };
-
-                diaries = [];
+                // 데이터 초기화하지 않고 UI만 업데이트
+                diaries = []; // 일기 데이터만 비움
                 updateUI();
-                displayDiaries(); // 일기 목록도 비우기
+                displayDiaries(); // 일기 목록 비우기
 
             } catch (error) {
                 console.error('로그아웃 오류:', error);
@@ -1171,26 +1159,30 @@
                 const isChecked = userData.completedToday.includes(checkbox.id);
                 checkbox.checked = isChecked;
 
-                // 오늘 체크한 항목은 비활성화하여 다시 해제할 수 없도록 함
-                if (isChecked) {
+                // 로그인 상태 확인 및 체크박스 상태 설정
+                if (!currentUser || !supabaseClient) {
+                    // 비로그인 상태: 모든 체크박스 비활성화
                     checkbox.disabled = true;
-                    checkbox.setAttribute('title', '오늘은 다시 해제할 수 없습니다');
+                    checkbox.checked = false;
+                    checkbox.setAttribute('title', '로그인이 필요합니다');
+                    checkbox.parentElement.classList.remove('completed');
                 } else {
-                    checkbox.disabled = false;
-                    checkbox.removeAttribute('title');
+                    // 로그인 상태: 체크된 항목만 비활성화
+                    if (isChecked) {
+                        checkbox.disabled = true;
+                        checkbox.setAttribute('title', '오늘은 다시 해제할 수 없습니다');
+                        checkbox.parentElement.classList.add('completed');
+                    } else {
+                        checkbox.disabled = false;
+                        checkbox.removeAttribute('title');
+                        checkbox.parentElement.classList.remove('completed');
+                    }
                 }
 
                 // 이벤트 리스너가 없는 경우에만 추가
                 if (!checkbox.hasAttribute('data-event-added')) {
                     checkbox.addEventListener('change', handleCheck);
                     checkbox.setAttribute('data-event-added', 'true');
-                }
-
-                // 체크된 항목의 부모 요소에 completed 클래스 추가/제거
-                if (checkbox.checked) {
-                    checkbox.parentElement.classList.add('completed');
-                } else {
-                    checkbox.parentElement.classList.remove('completed');
                 }
             });
 
@@ -1757,18 +1749,20 @@
                 console.log('회원가입 폼 제출됨');
                 signup();
             });
+
             // Supabase 초기화
             const supabaseInitialized = await initializeSupabase();
             if (!supabaseInitialized) {
                 console.error('Supabase 초기화에 실패했습니다. 인증 기능이 작동하지 않을 수 있습니다.');
             }
 
-                        
             // Supabase 인증 상태 확인 먼저 실행
             await checkAuthState();
 
-            // 인증 후 데이터 로드가 완료된 후에 날짜 변경 확인
-            await checkDateChangeAndReset();
+            // 데이터 로드 후 날짜 변경 확인 (순서 변경: 데이터 로드 후에 확인)
+            if (currentUser && supabaseClient) {
+                await checkDateChangeAndReset();
+            }
 
             // 최종 UI 업데이트 (인증 상태와 데이터 로딩 완료 후)
             updateUI();
@@ -1801,21 +1795,9 @@
                     await loadDiaries(); // 로그인 후 감정일기 로드
                     console.log('사용자 로그인됨:', session.user.email);
                 } else {
-                    // 비로그인 상태인 경우 데이터 초기화
+                    // 비로그인 상태인 경우 - 기존 userData는 그대로 유지
                     currentUser = null;
-                    userData = {
-                        streak: 0,
-                        level: 1,
-                        points: 0,
-                        lastCheck: null,
-                        completedToday: [],
-                        totalPoints: 0,
-                        startDate: null,
-                        lastCompletedDate: null,
-                        breathingPoints: 0
-                    };
-                    diaries = [];
-                    console.log('비로그인 상태: 데이터 초기화됨');
+                    console.log('비로그인 상태: 기존 데이터 유지');
                 }
             } catch (error) {
                 console.error('인증 상태 확인 오류:', error);
