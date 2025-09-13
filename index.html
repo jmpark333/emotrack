@@ -528,12 +528,15 @@
 
     <script>
         // Supabase 초기화 (사용자가 직접 설정 필요)
-        // const supabaseUrl = 'YOUR_SUPABASE_URL';
-        // const supabaseKey = 'YOUR_SUPABASE_KEY';
-        // const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // 아래 주석을 해제하고 YOUR_SUPABASE_URL과 YOUR_SUPABASE_KEY를 실제 값으로 변경하세요
+        /*
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_KEY';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        */
 
-        // 임시로 localStorage 사용 (Supabase 설정 후 아래 코드로 교체)
-        let supabase = null;
+        // 임시로 localStorage 사용 (Supabase 설정 후 위 코드로 교체)
+        let supabaseClient = null;
         let currentUser = null;
 
         // 데이터 초기화
@@ -601,7 +604,7 @@
 
         // 회원가입
         async function signup() {
-            if (!supabase) {
+            if (!supabaseClient) {
                 showMessage('signupMessage', 'Supabase가 설정되지 않았습니다. 관리자에게 문의해주세요.', 'error');
                 return;
             }
@@ -651,7 +654,7 @@
 
         // 로그인
         async function login() {
-            if (!supabase) {
+            if (!supabaseClient) {
                 showMessage('loginMessage', 'Supabase가 설정되지 않았습니다. 관리자에게 문의해주세요.', 'error');
                 return;
             }
@@ -724,7 +727,7 @@
 
         // 사용자 데이터 로드
         async function loadUserData() {
-            if (!currentUser || !supabase) {
+            if (!currentUser || !supabaseClient) {
                 // 로그인하지 않은 경우 localStorage에서 로드
                 userData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
                     streak: 0,
@@ -888,7 +891,7 @@
             }
 
             // Supabase에 저장 (로그인한 경우)
-            if (currentUser && supabase) {
+            if (currentUser && supabaseClient) {
                 await saveUserDataToSupabase();
             }
         }

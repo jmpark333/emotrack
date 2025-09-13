@@ -84,14 +84,16 @@ CREATE TRIGGER handle_user_data_updated_at
 
 ```javascript
 // 이 부분을 찾아서:
-// const supabaseUrl = 'YOUR_SUPABASE_URL';
-// const supabaseKey = 'YOUR_SUPABASE_KEY';
-// const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+/*
+const supabaseUrl = 'YOUR_SUPABASE_URL';
+const supabaseKey = 'YOUR_SUPABASE_KEY';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+*/
 
-// 이렇게 수정:
+// 이렇게 수정 (주석 해제 및 실제 값으로 변경):
 const supabaseUrl = 'https://xxxxxxxx.supabase.co'; // 복사한 URL로 변경
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // 복사한 키로 변경
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 ```
 
 ## 5. 이메일 인증 설정 (선택사항)
