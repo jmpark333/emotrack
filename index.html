@@ -588,14 +588,18 @@
                     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
 
                     try {
-                        supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                        // Supabase v2 올바른 초기화 방식
+                        const { createClient } = supabase;
+                        supabaseClient = createClient(supabaseUrl, supabaseKey);
+
                         console.log('Supabase 클라이언트 초기화 성공');
                         console.log('클라이언트 타입:', typeof supabaseClient);
+                        console.log('클라이언트 전체 구조:', Object.keys(supabaseClient));
+                        console.log('from 메소드 존재 여부:', 'from' in supabaseClient);
+                        console.log('from 메소드 타입:', typeof supabaseClient.from);
                         console.log('클라이언트 auth 객체:', supabaseClient.auth);
                         console.log('클라이언트 auth 타입:', typeof supabaseClient.auth);
-                        console.log('auth 객체의 메소드들:', Object.keys(supabaseClient.auth));
-                        console.log('signUp 메소드 존재 여부:', 'signUp' in supabaseClient.auth);
-                        console.log('signUp 메소드:', supabaseClient.auth.signUp);
+
                         resolve(true);
                     } catch (error) {
                         console.error('Supabase 클라이언트 초기화 실패:', error);
@@ -835,7 +839,7 @@
             }
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('user_data')
                     .select('*')
                     .eq('user_id', currentUser.id)
