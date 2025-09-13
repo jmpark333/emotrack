@@ -1005,7 +1005,7 @@
         }
 
         // 체크 이벤트 처리
-        function handleCheck(e) {
+        async function handleCheck(e) {
             const id = e.target.id;
             const parent = e.target.parentElement;
             
@@ -1027,7 +1027,7 @@
             
             // 데이터 저장 및 백업
             saveUserData();
-            updateProgress();
+            await updateProgress();
             updateBadges();
 
             // 오늘 획득 포인트 업데이트
@@ -1036,8 +1036,10 @@
             // 레벨업 체크
             if(userData.points >= userData.level * 100) {
                 userData.level++;
+                console.log('🎉 레벨업! 레벨:', userData.level);
                 alert(`🎉 레벨업! 평온 레벨 ${userData.level} 달성!`);
                 saveUserData();
+                await saveUserDataToSupabase(); // 레벨업 시 DB 저장
                 updateLevelProgress();
             } else {
                 updateLevelProgress();
@@ -1216,16 +1218,19 @@
         }
 
         // 연속 일수 업데이트 함수
-        function updateStreak() {
+        async function updateStreak() {
             const today = new Date().toDateString();
             const completed = userData.completedToday.length;
             const total = document.querySelectorAll('.check-input').length;
             const isAllCompleted = completed === total;
 
+            console.log('🔄 연속일수 업데이트:', { today, completed, total, isAllCompleted });
+
             // 시작일 설정
             if (!userData.startDate && isAllCompleted) {
                 userData.startDate = today;
                 userData.streak = 1;
+                console.log('🎯 첫 전체 완료! 시작일 설정:', userData.startDate);
             } else if (userData.startDate && isAllCompleted) {
                 // 모든 항목 완료 시 마지막 완료일 업데이트
                 userData.lastCompletedDate = today;
@@ -1235,17 +1240,21 @@
             if (userData.startDate) {
                 userData.streak = calculateStreak();
             }
+
+            // 연속일수 변경 시 DB에 저장
+            console.log('💾 연속일수 변경 후 DB 저장:', { streak: userData.streak, startDate: userData.startDate });
+            await saveUserDataToSupabase();
         }
 
         // 진행도 업데이트
-        function updateProgress() {
+        async function updateProgress() {
             const total = document.querySelectorAll('.check-input').length;
             const completed = userData.completedToday.length;
             const percentage = (completed / total) * 100;
             document.getElementById('dailyProgress').style.width = percentage + '%';
 
             // 연속 일수 업데이트
-            updateStreak();
+            await updateStreak();
         }
 
         // 뱃지 업데이트
@@ -1335,7 +1344,7 @@
             
             // 체크박스 자동 완료
             document.getElementById('evening2').checked = true;
-            handleCheck({target: document.getElementById('evening2')});
+            await handleCheck({target: document.getElementById('evening2')});
             
             // 입력 필드 초기화
             document.getElementById('wifeAction').value = '';
