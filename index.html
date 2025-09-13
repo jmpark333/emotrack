@@ -904,19 +904,29 @@
         // 로그아웃
         async function logout() {
             console.log('logout 함수 호출됨');
+
+            // 로그아웃 버튼 비활성화 (중복 클릭 방지)
+            const logoutBtn = document.querySelector('button[onclick="logout()"]');
+            if (logoutBtn) {
+                logoutBtn.disabled = true;
+                logoutBtn.textContent = '로그아웃 중...';
+            }
+
             if (!supabaseClient || !supabaseClient.auth) {
                 console.log('logout: Supabase 클라이언트 또는 auth 없음');
+                // 로컬 데이터만 초기화
+                performLocalLogout();
                 return;
             }
 
             try {
                 console.log('Supabase signOut 호출 전');
 
-                // 로그아웃 타임아웃 메커니즘 추가
+                // 로그아웃 타임아웃 메커니즘 추가 - 더 짧은 타임아웃
                 const logoutTimeoutPromise = new Promise((_, reject) => {
                     setTimeout(() => {
-                        reject(new Error('Logout timeout after 5 seconds'));
-                    }, 5000); // 5초 타임아웃
+                        reject(new Error('Logout timeout after 2 seconds'));
+                    }, 2000); // 2초 타임아웃으로 단축
                 });
 
                 const logoutPromise = supabaseClient.auth.signOut();
@@ -929,35 +939,53 @@
                     // 타임아웃 시에도 로컬 데이터는 초기화
                 }
 
-                // 데이터 초기화 (onAuthStateChange에서도 처리하지만 명시적으로 초기화)
-                currentUser = null;
-                userData = {
-                    streak: 0,
-                    level: 1,
-                    points: 0,
-                    lastCheck: null,
-                    completedToday: [],
-                    totalPoints: 0,
-                    startDate: null,
-                    lastCompletedDate: null,
-                    breathingPoints: 0
-                };
-                diaries = [];
-
-                // UI 업데이트
-                document.getElementById('userSection').style.display = 'none';
-                document.getElementById('loginSection').style.display = 'block';
-                updateDiarySection(); // 일기 섹션 UI 업데이트
-                updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
-                updateUI();
-                displayDiaries(); // 일기 목록 비우기
-
-                console.log('로그아웃 완료 - 모든 데이터 초기화됨');
+                // 항상 로컬 로그아웃 수행
+                performLocalLogout();
 
             } catch (error) {
                 console.error('로그아웃 오류:', error);
+                // 오류 발생 시에도 로컬 데이터 초기화
+                performLocalLogout();
             }
         }
+
+        // 로컬 로그아웃 수행 함수
+        function performLocalLogout() {
+            console.log('로컬 로그아웃 수행 시작');
+
+            // 데이터 초기화
+            currentUser = null;
+            userData = {
+                streak: 0,
+                level: 1,
+                points: 0,
+                lastCheck: null,
+                completedToday: [],
+                totalPoints: 0,
+                startDate: null,
+                lastCompletedDate: null,
+                breathingPoints: 0
+            };
+            diaries = [];
+
+            // UI 업데이트
+            document.getElementById('userSection').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            updateDiarySection(); // 일기 섹션 UI 업데이트
+            updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
+            updateUI();
+            displayDiaries(); // 일기 목록 비우기
+
+            // 로그아웃 버튼 상태 복원
+            const logoutBtn = document.querySelector('button[onclick="logout()"]');
+            if (logoutBtn) {
+                logoutBtn.disabled = false;
+                logoutBtn.textContent = '로그아웃';
+            }
+
+            console.log('로그아웃 완료 - 모든 데이터 초기화됨');
+            alert('로그아웃이 완료되었습니다.');
+    }
 
         // 일기 섹션 UI 업데이트
         function updateDiarySection() {
