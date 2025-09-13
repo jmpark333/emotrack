@@ -697,7 +697,18 @@
             try {
                 console.log('📝 회원가입 시도:', { email, passwordLength: password.length });
 
-                const { data, error } = await supabase.auth.signUp({
+                // auth 객체 다시 확인
+                if (!supabaseClient || !supabaseClient.auth) {
+                    throw new Error('Supabase 클라이언트가 초기화되지 않았습니다.');
+                }
+
+                console.log('auth 객체 상태:', {
+                    exists: !!supabaseClient.auth,
+                    hasSignUp: typeof supabaseClient.auth.signUp === 'function',
+                    signUpFunction: supabaseClient.auth.signUp
+                });
+
+                const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password
                 });
