@@ -580,6 +580,13 @@
                 <div style="font-size: 1.2rem; font-weight: bold; color: var(--primary);" id="dailyPoints">0</div>
             </div>
             <p id="rewardText">모든 체크리스트를 완료하면 보상이 열립니다!</p>
+
+            <!-- 리셋 버튼 추가 -->
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="resetAllPointsAndLevels()" style="background: var(--danger); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: all 0.3s;">
+                    🔄 모든 포인트와 레벨 리셋
+                </button>
+            </div>
         </div>
 
         <!-- 오늘 획득 포인트 상세 정보 -->
@@ -1206,12 +1213,16 @@
                     console.log(`이미 체크된 항목입니다: ${id}`);
                 }
             } else {
-                // 체크 해제 시 포인트 차감
-                userData.completedToday = userData.completedToday.filter(item => item !== id);
-                userData.points = Math.max(0, userData.points - 10); // 음수 방지
-                userData.totalPoints = Math.max(0, (userData.totalPoints || 0) - 10); // 총 누적 포인트도 차감
-                parent.classList.remove('completed');
-                console.log(`체크 해제: ${id}, 포인트 -10 (현재: ${userData.points})`);
+                // 체크 해제 방지 - 하루 동안은 체크한 항목을 해제할 수 없음
+                if (userData.completedToday.includes(id)) {
+                    e.target.checked = true;
+                    alert('⏰ 한 번 체크한 항목은 오늘 하루 동안 해제할 수 없습니다.');
+                    return;
+                } else {
+                    // 아직 완료하지 않은 항목의 체크 해제는 허용
+                    parent.classList.remove('completed');
+                    console.log(`체크 해제 허용: ${id} (아직 완료하지 않은 항목)`);
+                }
             }
 
             // 현재 날짜를 lastCheck에 설정하여 하루 중에 체크 상태 유지
@@ -1622,6 +1633,33 @@
                 diaries = [];
                 displayDiaries();
                 alert('모든 일기가 삭제되었습니다.');
+            }
+        }
+
+        // 모든 포인트와 레벨 리셋 함수
+        async function resetAllPointsAndLevels() {
+            if (confirm('정말 모든 포인트와 레벨을 리셋하시겠습니까?\n⚠️ 이 작업은 되돌릴 수 없습니다.')) {
+                // 모든 포인트와 레벨을 0으로 초기화
+                userData.points = 0;
+                userData.totalPoints = 0;
+                userData.level = 1;
+                userData.breathingPoints = 0;
+
+                // 체크리스트는 유지하지만 오늘의 포인트는 초기화
+                userData.completedToday = [];
+                userData.lastCheck = null;
+
+                // DB에 저장
+                if (currentUser && supabaseClient) {
+                    await saveUserDataToSupabase();
+                }
+
+                // UI 업데이트
+                updateUI();
+                updateLevelProgress();
+                updateDailyPoints();
+
+                alert('✅ 모든 포인트와 레벨이 리셋되었습니다.\n오늘부터 새로 시작하세요!');
             }
         }
 
