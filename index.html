@@ -59,6 +59,9 @@
             position: relative;
             height: 120px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .stat-card.flipped {
@@ -75,6 +78,8 @@
             justify-content: center;
             align-items: center;
             border-radius: 15px;
+            padding: 15px;
+            box-sizing: border-box;
         }
 
         .card-back {
@@ -251,8 +256,8 @@
         <div class="stats">
             <div class="stat-card" id="streakCard" onclick="flipCard()" title="클릭하여 시작일 확인">
                 <div class="card-front">
-                    <div class="stat-value" id="streak">0</div>
-                    <div>연속 일수</div>
+                    <div class="stat-value" id="streak" style="margin-bottom: 5px;">0</div>
+                    <div style="font-size: 0.9rem;">연속 일수</div>
                 </div>
                 <div class="card-back">
                     <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px;">📅 시작일</div>
@@ -504,8 +509,8 @@
             if (confirm('연속일수를 리셋하시겠습니까?\\n시작일이 오늘로 변경되고 연속일수는 0이 됩니다.')) {
                 const today = new Date().toDateString();
 
-                // 데이터 리셋
-                userData.startDate = null;
+                // 데이터 리셋 (시작일은 오늘로 설정)
+                userData.startDate = today;
                 userData.lastCompletedDate = null;
                 userData.streak = 0;
                 userData.completedToday = [];
@@ -522,7 +527,7 @@
                 // 카드 앞면으로 돌아가기
                 document.getElementById('streakCard').classList.remove('flipped');
 
-                alert('연속일수가 리셋되었습니다.\\n오늘부터 다시 시작해보세요!');
+                alert('연속일수가 리셋되었습니다.\\n오늘부터 새로 시작합니다!');
             }
         }
 
