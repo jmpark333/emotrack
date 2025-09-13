@@ -885,7 +885,7 @@
         async function loadUserData() {
             if (!currentUser || !supabaseClient) {
                 // 로그인하지 않은 경우 localStorage에서 로드
-                userData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
+                const localData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
                     streak: 0,
                     level: 1,
                     points: 0,
@@ -893,8 +893,13 @@
                     completedToday: [],
                     totalPoints: 0,
                     startDate: null,
-                    lastCompletedDate: null
+                    lastCompletedDate: null,
+                    diaries: []
                 };
+                userData = localData;
+
+                // diaries 배열도 로드
+                diaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
                 return;
             }
 
@@ -929,8 +934,12 @@
                         completedToday: data.completed_today || [],
                         totalPoints: data.total_points || 0,
                         startDate: data.start_date,
-                        lastCompletedDate: data.last_completed_date
+                        lastCompletedDate: data.last_completed_date,
+                        diaries: data.diaries || []
                     };
+
+                    // diaries 배열도 로드
+                    diaries = data.diaries || [];
                 } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
@@ -958,6 +967,7 @@
                         total_points: userData.totalPoints,
                         start_date: userData.startDate,
                         last_completed_date: userData.lastCompletedDate,
+                        diaries: userData.diaries || [],
                         updated_at: new Date().toISOString()
                     }, {
                         onConflict: 'user_id'
@@ -1367,16 +1377,22 @@
             } catch (e) {
                 console.log('일기 백업 실패:', e);
             }
-            
+
+            // userData에 일기 데이터 추가
+            userData.diaries = diaries;
+
+            // Supabase에 저장
+            await saveUserDataToSupabase();
+
             // 체크박스 자동 완료
             document.getElementById('evening2').checked = true;
             await handleCheck({target: document.getElementById('evening2')});
-            
+
             // 입력 필드 초기화
             document.getElementById('wifeAction').value = '';
             document.getElementById('myReaction').value = '';
             document.getElementById('reinterpretation').value = '';
-            
+
             displayDiaries();
             alert('✅ 감정 일기가 저장되었습니다!');
         }

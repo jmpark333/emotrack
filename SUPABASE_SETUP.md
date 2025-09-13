@@ -39,6 +39,7 @@ CREATE TABLE user_data (
     total_points INTEGER DEFAULT 0,
     start_date DATE,
     last_completed_date DATE,
+    diaries JSONB DEFAULT '[]',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
@@ -76,6 +77,9 @@ CREATE TRIGGER handle_user_data_updated_at
     BEFORE UPDATE ON user_data
     FOR EACH ROW
     EXECUTE FUNCTION handle_updated_at();
+
+-- 기존 테이블에 diaries 필드 추가 (이미 테이블이 있는 경우)
+ALTER TABLE user_data ADD COLUMN IF NOT EXISTS diaries JSONB DEFAULT '[]';
 ```
 
 ## 4. 앱에 Supabase 설정 적용
