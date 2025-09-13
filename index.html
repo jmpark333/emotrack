@@ -527,16 +527,10 @@
     </div>
 
     <script>
-        // Supabase 초기화 (사용자가 직접 설정 필요)
-        // 아래 주석을 해제하고 YOUR_SUPABASE_URL과 YOUR_SUPABASE_KEY를 실제 값으로 변경하세요
-        /*
-        const supabaseUrl = 'YOUR_SUPABASE_URL';
-        const supabaseKey = 'YOUR_SUPABASE_KEY';
+        // Supabase 초기화
+        const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc1MDgxMiwiZXhwIjoyMDczMzI2ODEyfQ.aHqJ4jXlgu6FnKWfLzxmwendnLUI4JZ8R-FwfPwa_oY';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-        */
-
-        // 임시로 localStorage 사용 (Supabase 설정 후 위 코드로 교체)
-        let supabaseClient = null;
         let currentUser = null;
 
         // 데이터 초기화
