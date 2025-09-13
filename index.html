@@ -20,6 +20,9 @@
 
                 if (typeof supabase !== 'undefined') {
                     console.log('✅ Supabase SDK 로드 완료');
+                    console.log('Supabase 버전:', supabase.version);
+                    console.log('Supabase auth 객체:', supabase.auth);
+                    console.log('Supabase createClient 함수:', typeof supabase.createClient);
                     callback();
                 } else if (attempts < maxAttempts) {
                     setTimeout(check, 100);
@@ -587,6 +590,9 @@
                     try {
                         supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                         console.log('Supabase 클라이언트 초기화 성공');
+                        console.log('클라이언트 타입:', typeof supabaseClient);
+                        console.log('클라이언트 auth 객체:', supabaseClient.auth);
+                        console.log('클라이언트 auth 타입:', typeof supabaseClient.auth);
                         resolve(true);
                     } catch (error) {
                         console.error('Supabase 클라이언트 초기화 실패:', error);
