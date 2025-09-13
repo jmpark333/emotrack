@@ -1168,7 +1168,18 @@
 
             // 체크리스트 상태 복원 (이벤트 리스너 중복 추가 방지)
             document.querySelectorAll('.check-input').forEach(checkbox => {
-                checkbox.checked = userData.completedToday.includes(checkbox.id);
+                const isChecked = userData.completedToday.includes(checkbox.id);
+                checkbox.checked = isChecked;
+
+                // 오늘 체크한 항목은 비활성화하여 다시 해제할 수 없도록 함
+                if (isChecked) {
+                    checkbox.disabled = true;
+                    checkbox.setAttribute('title', '오늘은 다시 해제할 수 없습니다');
+                } else {
+                    checkbox.disabled = false;
+                    checkbox.removeAttribute('title');
+                }
+
                 // 이벤트 리스너가 없는 경우에만 추가
                 if (!checkbox.hasAttribute('data-event-added')) {
                     checkbox.addEventListener('change', handleCheck);
@@ -1207,10 +1218,16 @@
                     userData.points += 10;
                     userData.totalPoints = (userData.totalPoints || 0) + 10; // 총 누적 포인트 증가
                     parent.classList.add('completed');
+
+                    // 체크 완료 후 비활성화
+                    e.target.disabled = true;
+                    e.target.setAttribute('title', '오늘은 다시 해제할 수 없습니다');
+
                     console.log(`체크 완료: ${id}, 포인트 +10 (현재: ${userData.points})`);
                 } else {
                     // 이미 체크된 항목을 다시 체크하려는 경우 (중복 방지)
                     console.log(`이미 체크된 항목입니다: ${id}`);
+                    e.target.checked = false;
                 }
             } else {
                 // 체크 해제 방지 - 하루 동안은 체크한 항목을 해제할 수 없음
@@ -1704,6 +1721,14 @@
                 userData.completedToday = [];
                 userData.breathingPoints = 0;
 
+                // 모든 체크박스 활성화 및 상태 초기화
+                document.querySelectorAll('.check-input').forEach(checkbox => {
+                    checkbox.disabled = false;
+                    checkbox.checked = false;
+                    checkbox.removeAttribute('title');
+                    checkbox.parentElement.classList.remove('completed');
+                });
+
                 // 변경된 데이터 저장
                 if (currentUser && supabaseClient) {
                     await saveUserDataToSupabase();
@@ -1712,7 +1737,7 @@
                 // UI 업데이트
                 updateUI();
 
-                console.log('날짜 변경으로 completedToday 배열이 초기화되었습니다.');
+                console.log('날짜 변경으로 completedToday 배열이 초기화되고 모든 체크박스가 활성화되었습니다.');
             } else {
                 console.log('오늘 날짜이거나 첫 사용입니다. 체크리스트 상태를 유지합니다.');
             }
