@@ -4,6 +4,7 @@
     <title>정서적 독립 트래커</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
     <style>
         :root {
             --primary: #6C5CE7;
@@ -237,6 +238,136 @@
                 --secondary: #A29BFE;
             }
         }
+
+        /* 인증 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        #authTabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--light);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .auth-form {
+            text-align: center;
+        }
+
+        .auth-form h2 {
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid var(--light);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .auth-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .auth-btn:hover {
+            background: var(--secondary);
+        }
+
+        .auth-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .auth-message.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .auth-message.error {
+            background: var(--danger);
+            color: white;
+        }
+
+        #userSection {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        #loginSection {
+            text-align: center;
+            margin-top: 10px;
+        }
     </style>
     
     <!-- 홈 화면에 추가하기 위한 설정 -->
@@ -248,9 +379,46 @@
 </head>
 <body>
     <div class="container">
+        <!-- 로그인/회원가입 모달 -->
+        <div id="authModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeAuthModal()">&times;</span>
+                <div id="authTabs">
+                    <button class="tab-btn active" onclick="switchTab('login')">로그인</button>
+                    <button class="tab-btn" onclick="switchTab('signup')">회원가입</button>
+                </div>
+
+                <!-- 로그인 폼 -->
+                <div id="loginForm" class="auth-form">
+                    <h2>로그인</h2>
+                    <input type="email" id="loginEmail" placeholder="이메일" required>
+                    <input type="password" id="loginPassword" placeholder="비밀번호" required>
+                    <button onclick="login()" class="auth-btn">로그인</button>
+                    <div id="loginMessage" class="auth-message"></div>
+                </div>
+
+                <!-- 회원가입 폼 -->
+                <div id="signupForm" class="auth-form" style="display: none;">
+                    <h2>회원가입</h2>
+                    <input type="email" id="signupEmail" placeholder="이메일" required>
+                    <input type="password" id="signupPassword" placeholder="비밀번호 (6자 이상)" required>
+                    <input type="password" id="signupConfirmPassword" placeholder="비밀번호 확인" required>
+                    <button onclick="signup()" class="auth-btn">회원가입</button>
+                    <div id="signupMessage" class="auth-message"></div>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <h1>🧘‍♂️ 정서적 독립 트래커</h1>
             <p>오늘도 당신의 평온함을 지키는 하루가 되길</p>
+            <div id="userSection" style="display: none;">
+                <span id="userEmail"></span>
+                <button onclick="logout()" style="margin-left: 10px; padding: 5px 10px; background: var(--danger); color: white; border: none; border-radius: 5px; cursor: pointer;">로그아웃</button>
+            </div>
+            <div id="loginSection">
+                <button onclick="openAuthModal()" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">로그인/회원가입</button>
+            </div>
         </div>
         
         <div class="stats">
@@ -359,6 +527,15 @@
     </div>
 
     <script>
+        // Supabase 초기화 (사용자가 직접 설정 필요)
+        // const supabaseUrl = 'YOUR_SUPABASE_URL';
+        // const supabaseKey = 'YOUR_SUPABASE_KEY';
+        // const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // 임시로 localStorage 사용 (Supabase 설정 후 아래 코드로 교체)
+        let supabase = null;
+        let currentUser = null;
+
         // 데이터 초기화
         let userData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
             streak: 0,
@@ -370,8 +547,261 @@
             startDate: null,  // 연속 사용 시작일 추가
             lastCompletedDate: null  // 마지막으로 모든 항목을 완료한 날짜
         };
-        
+
         let diaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
+
+        // ================ 인증 관련 함수 ================
+
+        // 인증 모달 열기
+        function openAuthModal() {
+            document.getElementById('authModal').style.display = 'block';
+        }
+
+        // 인증 모달 닫기
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            clearMessages();
+        }
+
+        // 탭 전환
+        function switchTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const tabBtns = document.querySelectorAll('.tab-btn');
+
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                signupForm.style.display = 'none';
+                tabBtns[0].classList.add('active');
+            } else {
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'block';
+                tabBtns[1].classList.add('active');
+            }
+
+            clearMessages();
+        }
+
+        // 메시지 지우기
+        function clearMessages() {
+            document.getElementById('loginMessage').textContent = '';
+            document.getElementById('loginMessage').className = 'auth-message';
+            document.getElementById('signupMessage').textContent = '';
+            document.getElementById('signupMessage').className = 'auth-message';
+        }
+
+        // 메시지 표시
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `auth-message ${type}`;
+        }
+
+        // 회원가입
+        async function signup() {
+            if (!supabase) {
+                showMessage('signupMessage', 'Supabase가 설정되지 않았습니다. 관리자에게 문의해주세요.', 'error');
+                return;
+            }
+
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+            if (!email || !password || !confirmPassword) {
+                showMessage('signupMessage', '모든 필드를 입력해주세요.', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('signupMessage', '비밀번호는 6자 이상이어야 합니다.', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage('signupMessage', '비밀번호가 일치하지 않습니다.', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    showMessage('signupMessage', error.message, 'error');
+                    return;
+                }
+
+                showMessage('signupMessage', '회원가입이 완료되었습니다. 이메일을 확인해주세요.', 'success');
+
+                // 3초 후 로그인 탭으로 전환
+                setTimeout(() => {
+                    switchTab('login');
+                    document.getElementById('loginEmail').value = email;
+                }, 3000);
+
+            } catch (error) {
+                showMessage('signupMessage', '회원가입 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 로그인
+        async function login() {
+            if (!supabase) {
+                showMessage('loginMessage', 'Supabase가 설정되지 않았습니다. 관리자에게 문의해주세요.', 'error');
+                return;
+            }
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showMessage('loginMessage', '이메일과 비밀번호를 입력해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    showMessage('loginMessage', error.message, 'error');
+                    return;
+                }
+
+                currentUser = data.user;
+                await loadUserData();
+
+                // UI 업데이트
+                document.getElementById('userEmail').textContent = email;
+                document.getElementById('userSection').style.display = 'flex';
+                document.getElementById('loginSection').style.display = 'none';
+
+                closeAuthModal();
+                updateUI();
+
+            } catch (error) {
+                showMessage('loginMessage', '로그인 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 로그아웃
+        async function logout() {
+            if (!supabase) return;
+
+            try {
+                await supabase.auth.signOut();
+                currentUser = null;
+
+                // UI 업데이트
+                document.getElementById('userSection').style.display = 'none';
+                document.getElementById('loginSection').style.display = 'block';
+
+                // 기본 데이터로 초기화
+                userData = {
+                    streak: 0,
+                    level: 1,
+                    points: 0,
+                    lastCheck: null,
+                    completedToday: [],
+                    totalPoints: 0,
+                    startDate: null,
+                    lastCompletedDate: null
+                };
+
+                updateUI();
+
+            } catch (error) {
+                console.error('로그아웃 오류:', error);
+            }
+        }
+
+        // 사용자 데이터 로드
+        async function loadUserData() {
+            if (!currentUser || !supabase) {
+                // 로그인하지 않은 경우 localStorage에서 로드
+                userData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
+                    streak: 0,
+                    level: 1,
+                    points: 0,
+                    lastCheck: null,
+                    completedToday: [],
+                    totalPoints: 0,
+                    startDate: null,
+                    lastCompletedDate: null
+                };
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_data')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116: 데이터 없음
+                    console.error('데이터 로드 오류:', error);
+                    return;
+                }
+
+                if (data) {
+                    userData = {
+                        streak: data.streak || 0,
+                        level: data.level || 1,
+                        points: data.points || 0,
+                        lastCheck: data.last_check,
+                        completedToday: data.completed_today || [],
+                        totalPoints: data.total_points || 0,
+                        startDate: data.start_date,
+                        lastCompletedDate: data.last_completed_date
+                    };
+                } else {
+                    // 새 사용자 데이터 생성
+                    await saveUserData();
+                }
+
+            } catch (error) {
+                console.error('사용자 데이터 로드 오류:', error);
+            }
+        }
+
+        // 사용자 데이터 저장 (Supabase)
+        async function saveUserDataToSupabase() {
+            if (!currentUser || !supabase) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_data')
+                    .upsert({
+                        user_id: currentUser.id,
+                        streak: userData.streak,
+                        level: userData.level,
+                        points: userData.points,
+                        last_check: userData.lastCheck,
+                        completed_today: userData.completedToday,
+                        total_points: userData.totalPoints,
+                        start_date: userData.startDate,
+                        last_completed_date: userData.lastCompletedDate,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'user_id'
+                    });
+
+                if (error) {
+                    console.error('데이터 저장 오류:', error);
+                }
+
+            } catch (error) {
+                console.error('사용자 데이터 저장 오류:', error);
+            }
+        }
         
         // 스마트폰 환경 감지
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -445,10 +875,28 @@
             }
         }
         
-        // 사용자 데이터 저장 및 백업
-        function saveUserData() {
+        // 사용자 데이터 저장 (통합 함수)
+        async function saveUserData() {
+            // localStorage에도 저장 (호환성 유지)
             localStorage.setItem('emotionalIndependence', JSON.stringify(userData));
-            
+
+            // 세션 스토리지에도 백업 (로컬 스토리지가 클리어되는 경우 대비)
+            try {
+                sessionStorage.setItem('emotionalIndependence_backup', JSON.stringify(userData));
+            } catch (e) {
+                console.log('세션 스토리지 백업 실패:', e);
+            }
+
+            // Supabase에 저장 (로그인한 경우)
+            if (currentUser && supabase) {
+                await saveUserDataToSupabase();
+            }
+        }
+
+        // 사용자 데이터 저장 및 백업 (로컬 전용)
+        function saveUserDataLocal() {
+            localStorage.setItem('emotionalIndependence', JSON.stringify(userData));
+
             // 세션 스토리지에도 백업 (로컬 스토리지가 클리어되는 경우 대비)
             try {
                 sessionStorage.setItem('emotionalIndependence_backup', JSON.stringify(userData));
@@ -836,8 +1284,31 @@
             // 날짜 변경 확인 및 초기화
             checkDateChangeAndReset();
 
+            // Supabase 인증 상태 확인
+            checkAuthState();
+
             updateUI();
         });
+
+        // 인증 상태 확인
+        async function checkAuthState() {
+            if (!supabase) return;
+
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('userEmail').textContent = user.email;
+                    document.getElementById('userSection').style.display = 'flex';
+                    document.getElementById('loginSection').style.display = 'none';
+
+                    await loadUserData();
+                }
+            } catch (error) {
+                console.error('인증 상태 확인 오류:', error);
+            }
+        }
     </script>
 </body>
 </html>
