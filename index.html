@@ -1157,7 +1157,7 @@
         }
 
         // 체크 이벤트 처리
-        async function handleCheck(e) {
+          async function handleCheck(e) {
             // 비로그인 상태에서는 체크 불가
             if (!currentUser || !supabaseClient) {
                 e.target.checked = false;
@@ -1169,16 +1169,24 @@
             const parent = e.target.parentElement;
 
             if(e.target.checked) {
+                // 이미 완료된 항목이 아닌 경우에만 포인트 추가
                 if(!userData.completedToday.includes(id)) {
                     userData.completedToday.push(id);
                     userData.points += 10;
                     userData.totalPoints = (userData.totalPoints || 0) + 10; // 총 누적 포인트 증가
                     parent.classList.add('completed');
+                    console.log(`체크 완료: ${id}, 포인트 +10 (현재: ${userData.points})`);
+                } else {
+                    // 이미 체크된 항목을 다시 체크하려는 경우 (중복 방지)
+                    console.log(`이미 체크된 항목입니다: ${id}`);
                 }
             } else {
+                // 체크 해제 시 포인트 차감
                 userData.completedToday = userData.completedToday.filter(item => item !== id);
-                userData.points -= 10;
+                userData.points = Math.max(0, userData.points - 10); // 음수 방지
+                userData.totalPoints = Math.max(0, (userData.totalPoints || 0) - 10); // 총 누적 포인트도 차감
                 parent.classList.remove('completed');
+                console.log(`체크 해제: ${id}, 포인트 -10 (현재: ${userData.points})`);
             }
             
             // 현재 날짜를 lastCheck에 설정하여 하루 중에 체크 상태 유지
@@ -1496,7 +1504,7 @@
 
                     // 호흡법 완료 시 10포인트 지급
                     userData.points += 10;
-                    userData.totalPoints = (userData.totalPoints || 0) + 10;
+                    userData.totalPoints = (userData.totalPoints || 0) + 10; // 총 누적 포인트도 증가
                     userData.breathingPoints = (userData.breathingPoints || 0) + 10;
 
                     // DB에 저장 (async 처리)
