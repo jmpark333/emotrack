@@ -795,6 +795,7 @@
 
                 closeAuthModal();
                 updateUI();
+                displayDiaries(); // 로그인 후 감정일기 표시
 
             } catch (error) {
                 console.error('💥 로그인 시스템 오류:', error);
@@ -1550,6 +1551,7 @@
                     document.getElementById('loginSection').style.display = 'none';
 
                     await loadUserData();
+                    displayDiaries(); // 로그인 후 감정일기 표시
                     console.log('사용자 로그인됨:', session.user.email);
                 }
             } catch (error) {
