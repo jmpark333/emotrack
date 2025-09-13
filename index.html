@@ -399,9 +399,9 @@
                     <h2>로그인</h2>
                     <form onsubmit="login(); return false;">
                         <label for="loginEmail">이메일</label>
-                        <input type="email" id="loginEmail" placeholder="이메일" required>
+                        <input type="email" id="loginEmail" placeholder="이메일" required autocomplete="email">
                         <label for="loginPassword">비밀번호</label>
-                        <input type="password" id="loginPassword" placeholder="비밀번호" required>
+                        <input type="password" id="loginPassword" placeholder="비밀번호" required autocomplete="current-password">
                         <button type="submit" class="auth-btn">로그인</button>
                     </form>
                     <div id="loginMessage" class="auth-message"></div>
@@ -412,11 +412,11 @@
                     <h2>회원가입</h2>
                     <form onsubmit="signup(); return false;">
                         <label for="signupEmail">이메일</label>
-                        <input type="email" id="signupEmail" placeholder="이메일" required>
+                        <input type="email" id="signupEmail" placeholder="이메일" required autocomplete="email">
                         <label for="signupPassword">비밀번호 (6자 이상)</label>
-                        <input type="password" id="signupPassword" placeholder="비밀번호 (6자 이상)" required>
+                        <input type="password" id="signupPassword" placeholder="비밀번호 (6자 이상)" required autocomplete="new-password">
                         <label for="signupConfirmPassword">비밀번호 확인</label>
-                        <input type="password" id="signupConfirmPassword" placeholder="비밀번호 확인" required>
+                        <input type="password" id="signupConfirmPassword" placeholder="비밀번호 확인" required autocomplete="new-password">
                         <button type="submit" class="auth-btn">회원가입</button>
                     </form>
                     <div id="signupMessage" class="auth-message"></div>
