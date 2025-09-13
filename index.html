@@ -527,10 +527,23 @@
     </div>
 
     <script>
+        // Supabase SDK 로딩 확인
+        if (typeof supabase === 'undefined') {
+            console.error('Supabase SDK가 로드되지 않았습니다. CDN을 확인해주세요.');
+        }
+
         // Supabase 초기화
         const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc1MDgxMiwiZXhwIjoyMDczMzI2ODEyfQ.aHqJ4jXlgu6FnKWfLzxmwendnLUI4JZ8R-FwfPwa_oY';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Supabase 클라이언트 생성 (오류 핸들링 추가)
+        let supabaseClient = null;
+        try {
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('Supabase 클라이언트 초기화 성공');
+        } catch (error) {
+            console.error('Supabase 클라이언트 초기화 실패:', error);
+        }
         let currentUser = null;
 
         // 데이터 초기화
@@ -1289,10 +1302,18 @@
 
         // 인증 상태 확인
         async function checkAuthState() {
-            if (!supabase) return;
+            if (!supabaseClient || !supabaseClient.auth) {
+                console.log('Supabase 클라이언트 또는 auth 모듈을 사용할 수 없음');
+                return;
+            }
 
             try {
-                const { data: { user }, error } = await supabase.auth.getUser();
+                const { data: { user }, error } = await supabaseClient.auth.getUser();
+
+                if (error) {
+                    console.log('인증된 사용자 없음:', error.message);
+                    return;
+                }
 
                 if (user) {
                     currentUser = user;
@@ -1301,6 +1322,7 @@
                     document.getElementById('loginSection').style.display = 'none';
 
                     await loadUserData();
+                    console.log('사용자 로그인됨:', user.email);
                 }
             } catch (error) {
                 console.error('인증 상태 확인 오류:', error);
