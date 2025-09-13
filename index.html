@@ -1635,9 +1635,10 @@
                     console.log('여러 날이 지났습니다. 연속이 초기화됩니다.');
                 }
 
-                // completedToday 배열 초기화
+                // completedToday 배열 초기화 (오늘의 체크리스트만 초기화)
                 userData.completedToday = [];
-                userData.points = 0; // 매일 포인트도 초기화
+                userData.breathingPoints = 0; // 오늘의 호흡법 포인트도 초기화
+                // userData.points = 0; // 총 누적 포인트는 초기화하지 않음 (레벨 유지)
 
                 // 변경된 데이터 저장
                 saveUserData();
@@ -1693,11 +1694,11 @@
                 console.log('일기 데이터 복구 실패:', e);
             }
             
-            // 날짜 변경 확인 및 초기화
-            checkDateChangeAndReset();
+            // Supabase 인증 상태 확인 먼저 실행
+            await checkAuthState();
 
-            // Supabase 인증 상태 확인 (임시로 비활성화)
-            checkAuthState();
+            // 인증 후 데이터 로드가 완료된 후에 날짜 변경 확인
+            checkDateChangeAndReset();
 
             updateUI();
             updateDiarySection(); // 일기 섹션 초기 UI 설정
