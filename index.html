@@ -1021,22 +1021,8 @@
         // 사용자 데이터 로드
         async function loadUserData() {
             if (!currentUser || !supabaseClient) {
-                // 로그인하지 않은 경우 모든 데이터 0으로 초기화
-                userData = {
-                    streak: 0,
-                    level: 1,
-                    points: 0,
-                    lastCheck: null,
-                    completedToday: [],
-                    totalPoints: 0,
-                    startDate: null,
-                    lastCompletedDate: null,
-                    breathingPoints: 0
-                };
-                diaries = []; // 비로그인 시 일기 없음
-
-                // 비로그인 상태에서도 오늘 획득 포인트 UI 업데이트
-                updateDailyPoints();
+                // 로그인하지 않은 경우 - 데이터 초기화는 checkAuthState에서 처리
+                console.log('loadUserData: 로그인하지 않은 상태');
                 return;
             }
 
@@ -1068,17 +1054,39 @@
                 }
 
                 if (data) {
-                    userData = {
-                        streak: data.streak || 0,
-                        level: data.level || 1,
-                        points: data.points || 0,
-                        lastCheck: data.last_check,
-                        completedToday: data.completed_today || [],
-                        totalPoints: data.total_points || 0,
-                        startDate: data.start_date,
-                        lastCompletedDate: data.last_completed_date,
-                        breathingPoints: data.breathing_points || 0
-                    };
+                    // DB에서 가져온 데이터로 업데이트 (완전히 덮어쓰지 않음)
+                    const dbCompletedToday = data.completed_today || [];
+                    const today = new Date().toDateString();
+                    const dbLastCheck = data.last_check;
+
+                    console.log('DB 데이터 로드:', {
+                        dbCompletedToday,
+                        dbLastCheck,
+                        today,
+                        lastCheckSame: dbLastCheck === today
+                    });
+
+                    // 오늘 날짜의 데이터인 경우에만 completedToday 유지
+                    if (dbLastCheck === today) {
+                        userData.completedToday = dbCompletedToday;
+                        console.log('오늘 날짜의 체크리스트 상태 복원:', dbCompletedToday);
+                    } else {
+                        // 날짜가 다른 경우 빈 배열로 초기화
+                        userData.completedToday = [];
+                        console.log('다른 날짜의 데이터: 체크리스트 초기화');
+                    }
+
+                    // 다른 필드들은 DB 데이터로 업데이트
+                    userData.streak = data.streak || 0;
+                    userData.level = data.level || 1;
+                    userData.points = data.points || 0;
+                    userData.lastCheck = data.last_check;
+                    userData.totalPoints = data.total_points || 0;
+                    userData.startDate = data.start_date;
+                    userData.lastCompletedDate = data.last_completed_date;
+                    userData.breathingPoints = data.breathing_points || 0;
+
+                    console.log('DB에서 사용자 데이터 로드 완료');
                 } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
@@ -1153,6 +1161,13 @@
                     checkbox.addEventListener('change', handleCheck);
                     checkbox.setAttribute('data-event-added', 'true');
                 }
+
+                // 체크된 항목의 부모 요소에 completed 클래스 추가/제거
+                if (checkbox.checked) {
+                    checkbox.parentElement.classList.add('completed');
+                } else {
+                    checkbox.parentElement.classList.remove('completed');
+                }
             });
 
             updateProgress();
@@ -1192,10 +1207,10 @@
                 parent.classList.remove('completed');
                 console.log(`체크 해제: ${id}, 포인트 -10 (현재: ${userData.points})`);
             }
-            
+
             // 현재 날짜를 lastCheck에 설정하여 하루 중에 체크 상태 유지
             userData.lastCheck = new Date().toDateString();
-            
+
             // 데이터 즉시 저장 (데이터베이스에 바로 저장)
             await saveUserDataToSupabase(); // 즉시 DB 저장
             await updateProgress();
@@ -1205,9 +1220,6 @@
             updateDailyPoints();
 
             // UI 업데이트 (평온포인트 카드 포함)
-            updateUI();
-
-            // 평온포인트 직접 업데이트 (강제 갱신)
             document.getElementById('points').textContent = userData.points;
 
             // 레벨업 체크
@@ -1215,15 +1227,11 @@
                 userData.level++;
                 console.log('🎉 레벨업! 레벨:', userData.level);
                 alert(`🎉 레벨업! 평온 레벨 ${userData.level} 달성!`);
-                saveUserData();
                 await saveUserDataToSupabase(); // 레벨업 시 DB 저장
                 updateLevelProgress();
             } else {
                 updateLevelProgress();
             }
-
-            // 데이터베이스에 저장
-            await saveUserDataToSupabase();
         }
         
         // 사용자 데이터 저장 (통합 함수)
@@ -1623,11 +1631,15 @@
             const today = new Date().toDateString();
             const lastCheck = userData.lastCheck;
 
+            console.log('날짜 변경 확인:', { today, lastCheck, completedToday: userData.completedToday });
+
             if (lastCheck && lastCheck !== today) {
-                // 날짜가 변경된 경우
+                // 날짜가 변경된 경우에만 초기화
                 const yesterday = new Date(lastCheck);
                 const currentDate = new Date(today);
                 const daysDiff = Math.floor((currentDate - yesterday) / (1000 * 60 * 60 * 24));
+
+                console.log('날짜 변경 감지:', { daysDiff, yesterday, currentDate });
 
                 if (daysDiff === 1) {
                     // 하루가 지난 경우: 어제 활동했으면 연속 유지
@@ -1658,13 +1670,15 @@
                 // UI 업데이트
                 updateUI();
 
-                console.log('completedToday 배열이 초기화되었습니다.');
+                console.log('날짜 변경으로 completedToday 배열이 초기화되었습니다.');
             } else if (!lastCheck && userData.completedToday.length > 0) {
                 // lastCheck가 없지만 completedToday에 데이터가 있는 경우
                 // 오늘 날짜로 lastCheck 설정하여 데이터 유지
                 userData.lastCheck = today;
                 saveUserData();
                 console.log('lastCheck를 오늘 날짜로 설정했습니다.');
+            } else {
+                console.log('오늘 날짜로 체크리스트 상태 유지');
             }
         }
 
@@ -1712,6 +1726,7 @@
             // 인증 후 데이터 로드가 완료된 후에 날짜 변경 확인
             checkDateChangeAndReset();
 
+            // 최종 UI 업데이트 (인증 상태와 데이터 로딩 완료 후)
             updateUI();
             updateDiarySection(); // 일기 섹션 초기 UI 설정
             updateChecklistSection(); // 체크리스트 섹션 초기 UI 설정
@@ -1740,10 +1755,23 @@
 
                     await loadUserData();
                     await loadDiaries(); // 로그인 후 감정일기 로드
-                    updateDiarySection(); // 일기 섹션 UI 업데이트
-                    updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
-                    updateUI(); // 전체 UI 업데이트 (체크리스트 상태 복원 포함)
                     console.log('사용자 로그인됨:', session.user.email);
+                } else {
+                    // 비로그인 상태인 경우 데이터 초기화
+                    currentUser = null;
+                    userData = {
+                        streak: 0,
+                        level: 1,
+                        points: 0,
+                        lastCheck: null,
+                        completedToday: [],
+                        totalPoints: 0,
+                        startDate: null,
+                        lastCompletedDate: null,
+                        breathingPoints: 0
+                    };
+                    diaries = [];
+                    console.log('비로그인 상태: 데이터 초기화됨');
                 }
             } catch (error) {
                 console.error('인증 상태 확인 오류:', error);
