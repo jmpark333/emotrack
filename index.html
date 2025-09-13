@@ -907,18 +907,31 @@
 
             try {
                 await supabaseClient.auth.signOut();
+
+                // 데이터 초기화 (onAuthStateChange에서도 처리하지만 명시적으로 초기화)
                 currentUser = null;
+                userData = {
+                    streak: 0,
+                    level: 1,
+                    points: 0,
+                    lastCheck: null,
+                    completedToday: [],
+                    totalPoints: 0,
+                    startDate: null,
+                    lastCompletedDate: null,
+                    breathingPoints: 0
+                };
+                diaries = [];
 
                 // UI 업데이트
                 document.getElementById('userSection').style.display = 'none';
                 document.getElementById('loginSection').style.display = 'block';
                 updateDiarySection(); // 일기 섹션 UI 업데이트
                 updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
-
-                // 데이터 초기화하지 않고 UI만 업데이트
-                diaries = []; // 일기 데이터만 비움
                 updateUI();
                 displayDiaries(); // 일기 목록 비우기
+
+                console.log('로그아웃 완료 - 모든 데이터 초기화됨');
 
             } catch (error) {
                 console.error('로그아웃 오류:', error);
@@ -1023,7 +1036,7 @@
             }
 
             try {
-                console.log('사용자 데이터 조회 시도:', { userId: currentUser.id });
+                console.log('사용자 데이터 조회 시작:', { userId: currentUser.id, email: currentUser.email });
 
                 const { data, error } = await supabaseClient
                     .from('user_data')
