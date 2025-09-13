@@ -1756,15 +1756,53 @@
                 console.error('Supabase 초기화에 실패했습니다. 인증 기능이 작동하지 않을 수 있습니다.');
             }
 
-            // Supabase 인증 상태 확인 먼저 실행
-            await checkAuthState();
+            // Supabase 인증 상태 변경 감지 리스너
+            if (supabaseClient && supabaseClient.auth) {
+                supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                    console.log('인증 상태 변경:', event, session?.user?.email);
 
-            // 데이터 로드 후 날짜 변경 확인 (순서 변경: 데이터 로드 후에 확인)
-            if (currentUser && supabaseClient) {
-                await checkDateChangeAndReset();
+                    if (event === 'SIGNED_IN' && session?.user) {
+                        currentUser = session.user;
+                        document.getElementById('userEmail').textContent = session.user.email;
+                        document.getElementById('userSection').style.display = 'flex';
+                        document.getElementById('loginSection').style.display = 'none';
+
+                        await loadUserData();
+                        await checkDateChangeAndReset();
+                        await loadDiaries();
+                        console.log('자동 로그인 성공:', session.user.email);
+                    } else if (event === 'SIGNED_OUT') {
+                        currentUser = null;
+                        document.getElementById('userSection').style.display = 'none';
+                        document.getElementById('loginSection').style.display = 'block';
+
+                        // 데이터 초기화
+                        userData = {
+                            streak: 0,
+                            level: 1,
+                            points: 0,
+                            lastCheck: null,
+                            completedToday: [],
+                            totalPoints: 0,
+                            startDate: null,
+                            lastCompletedDate: null,
+                            breathingPoints: 0
+                        };
+                        diaries = [];
+                        console.log('자동 로그아웃 완료');
+                    }
+
+                    // UI 업데이트
+                    updateUI();
+                    updateDiarySection();
+                    updateChecklistSection();
+                });
             }
 
-            // 최종 UI 업데이트 (인증 상태와 데이터 로딩 완료 후)
+            // 초기 인증 상태 확인
+            await checkAuthState();
+
+            // 최종 UI 업데이트
             updateUI();
             updateDiarySection(); // 일기 섹션 초기 UI 설정
             updateChecklistSection(); // 체크리스트 섹션 초기 UI 설정
@@ -1795,9 +1833,21 @@
                     await loadDiaries(); // 로그인 후 감정일기 로드
                     console.log('사용자 로그인됨:', session.user.email);
                 } else {
-                    // 비로그인 상태인 경우 - 기존 userData는 그대로 유지
+                    // 비로그인 상태인 경우 데이터 초기화
                     currentUser = null;
-                    console.log('비로그인 상태: 기존 데이터 유지');
+                    userData = {
+                        streak: 0,
+                        level: 1,
+                        points: 0,
+                        lastCheck: null,
+                        completedToday: [],
+                        totalPoints: 0,
+                        startDate: null,
+                        lastCompletedDate: null,
+                        breathingPoints: 0
+                    };
+                    diaries = [];
+                    console.log('비로그인 상태: 데이터 초기화됨');
                 }
             } catch (error) {
                 console.error('인증 상태 확인 오류:', error);
