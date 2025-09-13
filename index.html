@@ -5,6 +5,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
+    <script>
+        // Supabase SDK 로딩 확인
+        console.log('Supabase SDK 로딩 상태:', typeof supabase);
+        console.log('Supabase SDK 상세 정보:', supabase);
+
+        // SDK가 로드될 때까지 대기
+        function waitForSupabase(callback, maxAttempts = 50) {
+            let attempts = 0;
+
+            function check() {
+                attempts++;
+                console.log(`Supabase SDK 확인 시도 ${attempts}/${maxAttempts}:`, typeof supabase);
+
+                if (typeof supabase !== 'undefined') {
+                    console.log('✅ Supabase SDK 로드 완료');
+                    callback();
+                } else if (attempts < maxAttempts) {
+                    setTimeout(check, 100);
+                } else {
+                    console.error('❌ Supabase SDK 로드 실패');
+                }
+            }
+
+            check();
+        }
+    </script>
     <style>
         :root {
             --primary: #6C5CE7;
@@ -552,24 +578,22 @@
 
         // Supabase 초기화 함수
         function initializeSupabase() {
-            // Supabase SDK 로딩 확인
-            if (typeof supabase === 'undefined') {
-                console.error('Supabase SDK가 로드되지 않았습니다. CDN을 확인해주세요.');
-                return false;
-            }
+            return new Promise((resolve) => {
+                waitForSupabase(() => {
+                    // Supabase 초기화
+                    const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
+                    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
 
-            // Supabase 초기화
-            const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
-
-            try {
-                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-                console.log('Supabase 클라이언트 초기화 성공');
-                return true;
-            } catch (error) {
-                console.error('Supabase 클라이언트 초기화 실패:', error);
-                return false;
-            }
+                    try {
+                        supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                        console.log('Supabase 클라이언트 초기화 성공');
+                        resolve(true);
+                    } catch (error) {
+                        console.error('Supabase 클라이언트 초기화 실패:', error);
+                        resolve(false);
+                    }
+                });
+            });
         }
 
         // 데이터 초기화
@@ -1313,9 +1337,10 @@
         }
 
         // 초기화
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Supabase 초기화
-            if (!initializeSupabase()) {
+            const supabaseInitialized = await initializeSupabase();
+            if (!supabaseInitialized) {
                 console.error('Supabase 초기화에 실패했습니다. 인증 기능이 작동하지 않을 수 있습니다.');
             }
 
