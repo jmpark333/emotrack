@@ -229,6 +229,7 @@
             <div class="stat-card">
                 <div class="stat-value" id="level">1</div>
                 <div>평온 레벨</div>
+                <div style="font-size: 0.7rem; margin-top: 5px;" id="levelProgress">다음 레벨까지: 100포인트</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="points">0</div>
@@ -296,6 +297,10 @@
         <div class="reward">
             <h3>🏆 오늘의 보상</h3>
             <div id="badges"></div>
+            <div style="text-align: center; margin: 10px 0;">
+                <div style="font-size: 0.9rem; color: #666;">오늘 획득 포인트</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: var(--primary);" id="dailyPoints">0</div>
+            </div>
             <p id="rewardText">모든 체크리스트를 완료하면 보상이 열립니다!</p>
         </div>
     </div>
@@ -326,13 +331,19 @@
             document.getElementById('streak').textContent = userData.streak;
             document.getElementById('level').textContent = userData.level;
             document.getElementById('points').textContent = userData.points;
-            
+
+            // 레벨 진행도 표시 업데이트
+            updateLevelProgress();
+
+            // 오늘 획득 포인트 표시
+            updateDailyPoints();
+
             // 체크리스트 상태 복원
             document.querySelectorAll('.check-input').forEach(checkbox => {
                 checkbox.checked = userData.completedToday.includes(checkbox.id);
                 checkbox.addEventListener('change', handleCheck);
             });
-            
+
             updateProgress();
             updateBadges();
             displayDiaries();
@@ -363,12 +374,18 @@
             saveUserData();
             updateProgress();
             updateBadges();
-            
+
+            // 오늘 획득 포인트 업데이트
+            updateDailyPoints();
+
             // 레벨업 체크
             if(userData.points >= userData.level * 100) {
                 userData.level++;
                 alert(`🎉 레벨업! 평온 레벨 ${userData.level} 달성!`);
                 saveUserData();
+                updateLevelProgress();
+            } else {
+                updateLevelProgress();
             }
         }
         
@@ -396,6 +413,21 @@
                 console.log('데이터 복구 실패:', e);
             }
             return null;
+        }
+
+        // 레벨 진행도 업데이트
+        function updateLevelProgress() {
+            const pointsNeeded = userData.level * 100;
+            const pointsRemaining = Math.max(0, pointsNeeded - userData.points);
+            const progressPercentage = userData.points >= pointsNeeded ? 100 : (userData.points / pointsNeeded) * 100;
+
+            document.getElementById('levelProgress').textContent = `다음 레벨까지: ${pointsRemaining}포인트`;
+        }
+
+        // 오늘 획득 포인트 업데이트
+        function updateDailyPoints() {
+            const dailyPoints = userData.completedToday.length * 10;
+            document.getElementById('dailyPoints').textContent = dailyPoints;
         }
 
         // 진행도 업데이트
