@@ -553,7 +553,7 @@
             <label for="evening3">오늘 나를 지킨 행동 1가지 칭찬하기</label>
         </div>
         
-        <button class="emergency-btn" onclick="startBreathing()">
+        <button class="emergency-btn" onclick="handleBreathing()">
             🚨 긴급 호흡법 시작 (4-7-8)
         </button>
         
@@ -1291,6 +1291,11 @@
                 "오늘은 칭찬 일기 쓰지 않기"
             ];
             return rewards[Math.floor(Math.random() * rewards.length)];
+        }
+
+        // 호흡법 핸들러
+        function handleBreathing() {
+            startBreathing();
         }
 
         // 호흡법 타이머
