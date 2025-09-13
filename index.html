@@ -1308,16 +1308,16 @@
             }
 
             try {
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
 
                 if (error) {
                     console.log('인증된 사용자 없음:', error.message);
                     return;
                 }
 
-                if (user) {
-                    currentUser = user;
-                    document.getElementById('userEmail').textContent = user.email;
+                if (session && session.user) {
+                    currentUser = session.user;
+                    document.getElementById('userEmail').textContent = session.user.email;
                     document.getElementById('userSection').style.display = 'flex';
                     document.getElementById('loginSection').style.display = 'none';
 
