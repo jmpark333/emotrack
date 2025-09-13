@@ -941,6 +941,16 @@
 
                     // diaries 배열도 로드
                     diaries = data.diaries || [];
+                    console.log('Supabase에서 로드된 diaries:', diaries);
+
+                    // localStorage에 일기가 있지만 Supabase에 없는 경우 마이그레이션
+                    const localDiaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
+                    if (localDiaries.length > 0 && diaries.length === 0) {
+                        console.log('localStorage에서 Supabase로 일기 마이그레이션');
+                        diaries = localDiaries;
+                        userData.diaries = diaries;
+                        await saveUserDataToSupabase();
+                    }
                 } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
@@ -1402,7 +1412,10 @@
         function displayDiaries() {
             const diaryList = document.getElementById('diaryList');
             diaryList.innerHTML = '';
-            
+
+            console.log('displayDiaries 호출됨, diaries 길이:', diaries.length);
+            console.log('diaries 내용:', diaries);
+
             if(diaries.length === 0) {
                 diaryList.innerHTML = '<p style="color: #666;">저장된 일기가 없습니다</p>';
                 return;
