@@ -273,13 +273,7 @@
                     <div style="font-size: 0.9rem;">평온 레벨</div>
                 </div>
                 <div class="card-back">
-                    <div id="levelProgressDisplay" style="font-size: 0.9rem; font-weight: bold; margin-bottom: 10px;">다음 레벨까지: 100포인트</div>
-                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin-bottom: 5px;">
-                        현재 포인트: <span id="currentPointsDisplay">0</span>
-                    </div>
-                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.9);">
-                        다음 레벨: <span id="nextLevelDisplay">2</span>
-                    </div>
+                    <div id="levelProgressDisplay" style="font-size: 1.0rem; font-weight: bold;">다음 레벨까지: 100포인트</div>
                 </div>
             </div>
             <div class="stat-card">
@@ -482,11 +476,8 @@
         function updateLevelProgressDisplay() {
             const pointsNeeded = userData.level * 100;
             const pointsRemaining = Math.max(0, pointsNeeded - userData.points);
-            const progressPercentage = userData.points >= pointsNeeded ? 100 : (userData.points / pointsNeeded) * 100;
 
             document.getElementById('levelProgressDisplay').textContent = `다음 레벨까지: ${pointsRemaining}포인트`;
-            document.getElementById('currentPointsDisplay').textContent = userData.points;
-            document.getElementById('nextLevelDisplay').textContent = userData.level + 1;
         }
 
         // 오늘 획득 포인트 업데이트
