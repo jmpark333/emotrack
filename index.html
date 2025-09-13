@@ -1122,29 +1122,58 @@
                 const queryStartTime = Date.now();
                 console.log('쿼리 시작 시간:', queryStartTime);
 
-                // 타임아웃 메커니즘 추가
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => {
-                        reject(new Error('Database query timeout after 10 seconds'));
-                    }, 10000); // 10초 타임아웃
-                });
-
-                const queryPromise = supabaseClient
+                // 쿼리 최적화: 필요한 필드만 선택
+                const optimizedQuery = supabaseClient
                     .from('user_data')
-                    .select('*')
+                    .select('streak, level, points, last_check, completed_today, total_points, start_date, last_completed_date, breathing_points')
                     .eq('user_id', currentUser.id)
                     .single();
 
+                // 재시도 메커니즘 추가
                 let data, error;
-                try {
-                    const result = await Promise.race([queryPromise, timeoutPromise]);
-                    data = result.data;
-                    error = result.error;
-                } catch (timeoutError) {
-                    console.error('쿼리 타임아웃 발생:', timeoutError);
-                    // 타임아웃 시 기본 데이터 사용
-                    data = null;
-                    error = { code: 'TIMEOUT', message: 'Database query timeout' };
+                let retryCount = 0;
+                const maxRetries = 2;
+
+                while (retryCount <= maxRetries) {
+                    try {
+                        console.log(`쿼리 시도 ${retryCount + 1}/${maxRetries + 1}`);
+
+                        // 타임아웃 메커니즘 추가 (더 짧은 타임아웃)
+                        const timeoutPromise = new Promise((_, reject) => {
+                            setTimeout(() => {
+                                reject(new Error('Database query timeout after 5 seconds'));
+                            }, 5000); // 5초 타임아웃으로 단축
+                        });
+
+                        const result = await Promise.race([optimizedQuery, timeoutPromise]);
+                        data = result.data;
+                        error = result.error;
+
+                        if (!error) {
+                            console.log(`쿼리 성공 (시도 ${retryCount + 1})`);
+                            break; // 성공 시 루프 종료
+                        }
+
+                        retryCount++;
+
+                        if (retryCount <= maxRetries) {
+                            console.log(`쿼리 실패, 1초 후 재시도 (${retryCount}/${maxRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+                        }
+
+                    } catch (timeoutError) {
+                        console.error(`쿼리 타임아웃 (시도 ${retryCount + 1}):`, timeoutError);
+                        retryCount++;
+
+                        if (retryCount <= maxRetries) {
+                            console.log(`타임아웃, 1초 후 재시도 (${retryCount}/${maxRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } else {
+                            // 모든 재시도 실패 시 기본 데이터 사용
+                            data = null;
+                            error = { code: 'TIMEOUT', message: 'Database query timeout after retries' };
+                        }
+                    }
                 }
 
                 const queryEndTime = Date.now();
@@ -1269,14 +1298,8 @@
                 const saveStartTime = Date.now();
                 console.log('저장 쿼리 시작 시간:', saveStartTime);
 
-                // 저장 쿼리 타임아웃 메커니즘 추가
-                const saveTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => {
-                        reject(new Error('Database save timeout after 10 seconds'));
-                    }, 10000); // 10초 타임아웃
-                });
-
-                const saveQueryPromise = supabaseClient
+                // 저장 쿼리 최적화: 작은 데이터셋으로
+                const optimizedSaveQuery = supabaseClient
                     .from('user_data')
                     .upsert({
                         user_id: currentUser.id,
@@ -1294,16 +1317,51 @@
                         onConflict: 'user_id'
                     });
 
+                // 저장 재시도 메커니즘
                 let data, error;
-                try {
-                    const result = await Promise.race([saveQueryPromise, saveTimeoutPromise]);
-                    data = result.data;
-                    error = result.error;
-                } catch (timeoutError) {
-                    console.error('저장 쿼리 타임아웃 발생:', timeoutError);
-                    // 타임아웃 시 에러 처리
-                    data = null;
-                    error = { code: 'TIMEOUT', message: 'Database save timeout' };
+                let saveRetryCount = 0;
+                const maxSaveRetries = 2;
+
+                while (saveRetryCount <= maxSaveRetries) {
+                    try {
+                        console.log(`저장 쿼리 시도 ${saveRetryCount + 1}/${maxSaveRetries + 1}`);
+
+                        // 더 짧은 타임아웃
+                        const saveTimeoutPromise = new Promise((_, reject) => {
+                            setTimeout(() => {
+                                reject(new Error('Database save timeout after 5 seconds'));
+                            }, 5000); // 5초 타임아웃
+                        });
+
+                        const result = await Promise.race([optimizedSaveQuery, saveTimeoutPromise]);
+                        data = result.data;
+                        error = result.error;
+
+                        if (!error) {
+                            console.log(`저장 쿼리 성공 (시도 ${saveRetryCount + 1})`);
+                            break; // 성공 시 루프 종료
+                        }
+
+                        saveRetryCount++;
+
+                        if (saveRetryCount <= maxSaveRetries) {
+                            console.log(`저장 실패, 1초 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+                        }
+
+                    } catch (timeoutError) {
+                        console.error(`저장 쿼리 타임아웃 (시도 ${saveRetryCount + 1}):`, timeoutError);
+                        saveRetryCount++;
+
+                        if (saveRetryCount <= maxSaveRetries) {
+                            console.log(`저장 타임아웃, 1초 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } else {
+                            // 모든 재시도 실패 시 에러 처리
+                            data = null;
+                            error = { code: 'TIMEOUT', message: 'Database save timeout after retries' };
+                        }
+                    }
                 }
 
                 const saveEndTime = Date.now();
