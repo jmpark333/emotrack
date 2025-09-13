@@ -80,8 +80,44 @@ CREATE TRIGGER handle_user_data_updated_at
     EXECUTE FUNCTION handle_updated_at();
 
 -- 기존 테이블에 필드 추가 (이미 테이블이 있는 경우)
-ALTER TABLE user_data ADD COLUMN IF NOT EXISTS diaries JSONB DEFAULT '[]';
 ALTER TABLE user_data ADD COLUMN IF NOT EXISTS breathing_points INTEGER DEFAULT 0;
+
+-- 감정 일기 전용 테이블 생성
+CREATE TABLE IF NOT EXISTS emotion_diaries (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    wife_action TEXT NOT NULL,
+    my_reaction TEXT NOT NULL,
+    reinterpretation TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- RLS (Row Level Security) 활성화
+ALTER TABLE emotion_diaries ENABLE ROW LEVEL SECURITY;
+
+-- 일기 테이블 정책 생성
+CREATE POLICY "Users can view own diaries"
+ON emotion_diaries FOR SELECT
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own diaries"
+ON emotion_diaries FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own diaries"
+ON emotion_diaries FOR UPDATE
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own diaries"
+ON emotion_diaries FOR DELETE
+USING (auth.uid() = user_id);
+
+-- created_at 자동 업데이트 트리거
+CREATE TRIGGER handle_emotion_diaries_updated_at
+    BEFORE UPDATE ON emotion_diaries
+    FOR EACH ROW
+    EXECUTE FUNCTION handle_updated_at();
 ```
 
 ## 4. 앱에 Supabase 설정 적용

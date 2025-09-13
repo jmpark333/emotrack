@@ -539,13 +539,22 @@
         <div class="check-item">
             <input type="checkbox" class="check-input" id="evening2">
             <label for="evening2">📖 감정 일기 작성</label>
-            <label for="wifeAction" class="diary-label">아내의 행동</label>
-            <input type="text" id="wifeAction" class="diary-input" placeholder="아내의 행동 (예: 고성 질문)" aria-label="아내의 행동">
-            <label for="myReaction" class="diary-label">내 첫 반응</label>
-            <input type="text" id="myReaction" class="diary-input" placeholder="내 첫 반응 (예: 죄책감 + 분노)" aria-label="내 첫 반응">
-            <label for="reinterpretation" class="diary-label">재해석</label>
-            <input type="text" id="reinterpretation" class="diary-input" placeholder="재해석 (예: 그녀는 불안해서 그런 거야)" aria-label="재해석">
-            <button class="btn" onclick="saveDiary()">💾 저장하고 체크 완료</button>
+            <div id="diarySection" style="margin-top: 10px;">
+                <!-- 로그인하지 않은 경우 표시될 메시지 -->
+                <div id="diaryLoginPrompt" style="color: #666; padding: 10px; background: #f5f5f5; border-radius: 5px; margin-bottom: 10px;">
+                    감정 일기를 작성하려면 로그인이 필요합니다.
+                </div>
+                <!-- 로그인한 경우 표시될 일기 입력 폼 -->
+                <div id="diaryForm" style="display: none;">
+                    <label for="wifeAction" class="diary-label">아내의 행동</label>
+                    <input type="text" id="wifeAction" class="diary-input" placeholder="아내의 행동 (예: 고성 질문)" aria-label="아내의 행동">
+                    <label for="myReaction" class="diary-label">내 첫 반응</label>
+                    <input type="text" id="myReaction" class="diary-input" placeholder="내 첫 반응 (예: 죄책감 + 분노)" aria-label="내 첫 반응">
+                    <label for="reinterpretation" class="diary-label">재해석</label>
+                    <input type="text" id="reinterpretation" class="diary-input" placeholder="재해석 (예: 그녀는 불안해서 그런 거야)" aria-label="재해석">
+                    <button class="btn" onclick="saveDiary()">💾 저장하고 체크 완료</button>
+                </div>
+            </div>
         </div>
         
         <div class="check-item">
@@ -795,7 +804,8 @@
 
                 closeAuthModal();
                 updateUI();
-                displayDiaries(); // 로그인 후 감정일기 표시
+                await loadDiaries(); // 로그인 후 감정일기 로드
+                updateDiarySection(); // 일기 섹션 UI 업데이트
 
             } catch (error) {
                 console.error('💥 로그인 시스템 오류:', error);
@@ -818,8 +828,7 @@
                     total_points: 0,
                     start_date: null,
                     last_completed_date: null,
-                    breathing_points: 0,
-                    diaries: []
+                    breathing_points: 0
                 };
 
                 const { data, error } = await supabaseClient
@@ -864,6 +873,7 @@
                 // UI 업데이트
                 document.getElementById('userSection').style.display = 'none';
                 document.getElementById('loginSection').style.display = 'block';
+                updateDiarySection(); // 일기 섹션 UI 업데이트
 
                 // 기본 데이터로 초기화
                 userData = {
@@ -884,6 +894,57 @@
             }
         }
 
+        // 일기 섹션 UI 업데이트
+        function updateDiarySection() {
+            const loginPrompt = document.getElementById('diaryLoginPrompt');
+            const diaryForm = document.getElementById('diaryForm');
+
+            if (currentUser && supabaseClient) {
+                loginPrompt.style.display = 'none';
+                diaryForm.style.display = 'block';
+            } else {
+                loginPrompt.style.display = 'block';
+                diaryForm.style.display = 'none';
+            }
+        }
+
+        // 일기 데이터 로드 (데이터베이스 전용)
+        async function loadDiaries() {
+            if (!currentUser || !supabaseClient) {
+                diaries = [];
+                displayDiaries();
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('emotion_diaries')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('일기 로드 오류:', error);
+                    diaries = [];
+                } else {
+                    // 데이터베이스 형식을 기존 형식으로 변환
+                    diaries = (data || []).map(diary => ({
+                        date: new Date(diary.created_at).toLocaleString(),
+                        wifeAction: diary.wife_action,
+                        myReaction: diary.my_reaction,
+                        reinterpretation: diary.reinterpretation
+                    }));
+                    console.log('데이터베이스에서 로드된 일기:', diaries.length, '개');
+                }
+
+                displayDiaries();
+            } catch (error) {
+                console.error('일기 로드 시스템 오류:', error);
+                diaries = [];
+                displayDiaries();
+            }
+        }
+
         // 사용자 데이터 로드
         async function loadUserData() {
             if (!currentUser || !supabaseClient) {
@@ -897,13 +958,10 @@
                     totalPoints: 0,
                     startDate: null,
                     lastCompletedDate: null,
-                    diaries: [],
                     breathingPoints: 0
                 };
                 userData = localData;
-
-                // diaries 배열도 로드
-                diaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
+                diaries = []; // 비로그인 시 일기 없음
                 return;
             }
 
@@ -944,22 +1002,8 @@
                         totalPoints: data.total_points || 0,
                         startDate: data.start_date,
                         lastCompletedDate: data.last_completed_date,
-                        diaries: data.diaries || [],
                         breathingPoints: data.breathing_points || 0
                     };
-
-                    // diaries 배열도 로드
-                    diaries = data.diaries || [];
-                    console.log('Supabase에서 로드된 diaries:', diaries);
-
-                    // localStorage에 일기가 있지만 Supabase에 없는 경우 마이그레이션
-                    const localDiaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
-                    if (localDiaries.length > 0 && diaries.length === 0) {
-                        console.log('localStorage에서 Supabase로 일기 마이그레이션');
-                        diaries = localDiaries;
-                        userData.diaries = diaries;
-                        await saveUserDataToSupabase();
-                    }
                 } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
@@ -987,7 +1031,6 @@
                         total_points: userData.totalPoints,
                         start_date: userData.startDate,
                         last_completed_date: userData.lastCompletedDate,
-                        diaries: userData.diaries || [],
                         breathing_points: userData.breathingPoints || 0,
                         updated_at: new Date().toISOString()
                     }, {
@@ -1377,49 +1420,58 @@
 
         // 감정 일기 저장
         async function saveDiary() {
+            if (!currentUser || !supabaseClient) {
+                alert('로그인이 필요합니다!');
+                return;
+            }
+
             const wifeAction = document.getElementById('wifeAction').value;
             const myReaction = document.getElementById('myReaction').value;
             const reinterpretation = document.getElementById('reinterpretation').value;
-            
+
             if(!wifeAction || !myReaction || !reinterpretation) {
                 alert('모든 필드를 작성해주세요!');
                 return;
             }
-            
-            const diary = {
-                date: new Date().toLocaleString(),
-                wifeAction,
-                myReaction,
-                reinterpretation
-            };
-            
-            diaries.unshift(diary);
-            localStorage.setItem('emotionDiaries', JSON.stringify(diaries));
-            
-            // 일기 데이터 백업
+
             try {
-                sessionStorage.setItem('emotionDiaries_backup', JSON.stringify(diaries));
-            } catch (e) {
-                console.log('일기 백업 실패:', e);
+                // Supabase에 일기 저장
+                const { data, error } = await supabaseClient
+                    .from('emotion_diaries')
+                    .insert([{
+                        user_id: currentUser.id,
+                        wife_action: wifeAction,
+                        my_reaction: myReaction,
+                        reinterpretation: reinterpretation
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('일기 저장 오류:', error);
+                    alert('일기 저장에 실패했습니다.');
+                    return;
+                }
+
+                console.log('일기 저장 성공:', data);
+
+                // 체크박스 자동 완료
+                document.getElementById('evening2').checked = true;
+                await handleCheck({target: document.getElementById('evening2')});
+
+                // 입력 필드 초기화
+                document.getElementById('wifeAction').value = '';
+                document.getElementById('myReaction').value = '';
+                document.getElementById('reinterpretation').value = '';
+
+                // 일기 목록 새로고침
+                await loadDiaries();
+                alert('✅ 감정 일기가 저장되었습니다!');
+
+            } catch (error) {
+                console.error('일기 저장 시스템 오류:', error);
+                alert('일기 저장에 실패했습니다.');
             }
-
-            // userData에 일기 데이터 추가
-            userData.diaries = diaries;
-
-            // Supabase에 저장
-            await saveUserDataToSupabase();
-
-            // 체크박스 자동 완료
-            document.getElementById('evening2').checked = true;
-            await handleCheck({target: document.getElementById('evening2')});
-
-            // 입력 필드 초기화
-            document.getElementById('wifeAction').value = '';
-            document.getElementById('myReaction').value = '';
-            document.getElementById('reinterpretation').value = '';
-
-            displayDiaries();
-            alert('✅ 감정 일기가 저장되었습니다!');
         }
 
         // 일기 목록 표시
@@ -1554,6 +1606,7 @@
             checkAuthState();
 
             updateUI();
+            updateDiarySection(); // 일기 섹션 초기 UI 설정
         });
 
         // 인증 상태 확인
@@ -1578,8 +1631,8 @@
                     document.getElementById('loginSection').style.display = 'none';
 
                     await loadUserData();
-                    console.log('loadUserData 완료 후 diaries 길이:', diaries.length);
-                    displayDiaries(); // 로그인 후 감정일기 표시
+                    await loadDiaries(); // 로그인 후 감정일기 로드
+                    updateDiarySection(); // 일기 섹션 UI 업데이트
                     console.log('사용자 로그인됨:', session.user.email);
                 }
             } catch (error) {
