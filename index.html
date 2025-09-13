@@ -648,19 +648,20 @@
             });
         }
 
-        // 데이터 초기화
-        let userData = JSON.parse(localStorage.getItem('emotionalIndependence')) || {
+        // 데이터 초기화 - 데이터베이스 전용
+        let userData = {
             streak: 0,
             level: 1,
             points: 0,
             lastCheck: null,
             completedToday: [],
-            totalPoints: 0,  // 총 누적 포인트 추가
-            startDate: null,  // 연속 사용 시작일 추가
-            lastCompletedDate: null  // 마지막으로 모든 항목을 완료한 날짜
+            totalPoints: 0,
+            startDate: null,
+            lastCompletedDate: null,
+            breathingPoints: 0
         };
 
-        let diaries = JSON.parse(localStorage.getItem('emotionDiaries')) || [];
+        let diaries = []; // 데이터베이스 전용
 
         // ================ 인증 관련 함수 ================
 
@@ -1234,7 +1235,7 @@
             }
         }
         
-        // 사용자 데이터 저장 (통합 함수)
+        // 사용자 데이터 저장 (데이터베이스 전용)
         async function saveUserData() {
             // Supabase에 저장 (로그인한 경우)
             if (currentUser && supabaseClient) {
@@ -1242,33 +1243,8 @@
             }
             // 비로그인 상태에서는 데이터를 저장하지 않음
         }
-
-        // 사용자 데이터 저장 및 백업 (로컬 전용)
-        function saveUserDataLocal() {
-            localStorage.setItem('emotionalIndependence', JSON.stringify(userData));
-
-            // 세션 스토리지에도 백업 (로컬 스토리지가 클리어되는 경우 대비)
-            try {
-                sessionStorage.setItem('emotionalIndependence_backup', JSON.stringify(userData));
-            } catch (e) {
-                console.log('세션 스토리지 백업 실패:', e);
-            }
-        }
         
-        // 데이터 복구 함수
-        function recoverUserData() {
-            try {
-                const backup = sessionStorage.getItem('emotionalIndependence_backup');
-                if (backup && !localStorage.getItem('emotionalIndependence')) {
-                    localStorage.setItem('emotionalIndependence', backup);
-                    return JSON.parse(backup);
-                }
-            } catch (e) {
-                console.log('데이터 복구 실패:', e);
-            }
-            return null;
-        }
-
+      
         // 레벨 진행도 업데이트
         function updateLevelProgress() {
             const pointsNeeded = userData.level * 100;
@@ -1615,10 +1591,28 @@
         }
 
         // 일기 삭제
-        function clearDiaries() {
+        async function clearDiaries() {
             if(confirm('정말 모든 감정 일기를 삭제하시겠습니까?')) {
+                if (currentUser && supabaseClient) {
+                    // DB에서 일기 삭제
+                    try {
+                        const { error } = await supabaseClient
+                            .from('emotion_diaries')
+                            .delete()
+                            .eq('user_id', currentUser.id);
+
+                        if (error) {
+                            console.error('일기 삭제 오류:', error);
+                            alert('일기 삭제에 실패했습니다.');
+                            return;
+                        }
+                    } catch (error) {
+                        console.error('일기 삭제 시스템 오류:', error);
+                        alert('일기 삭제에 실패했습니다.');
+                        return;
+                    }
+                }
                 diaries = [];
-                localStorage.setItem('emotionDiaries', JSON.stringify(diaries));
                 displayDiaries();
                 alert('모든 일기가 삭제되었습니다.');
             }
@@ -1664,8 +1658,10 @@
                 userData.breathingPoints = 0; // 오늘의 호흡법 포인트도 초기화
                 // userData.points = 0; // 총 누적 포인트는 초기화하지 않음 (레벨 유지)
 
-                // 변경된 데이터 저장
-                saveUserData();
+                // 변경된 데이터 저장 (DB에만 저장)
+                if (currentUser && supabaseClient) {
+                    await saveUserDataToSupabase();
+                }
 
                 // UI 업데이트
                 updateUI();
@@ -1675,7 +1671,9 @@
                 // lastCheck가 없지만 completedToday에 데이터가 있는 경우
                 // 오늘 날짜로 lastCheck 설정하여 데이터 유지
                 userData.lastCheck = today;
-                saveUserData();
+                if (currentUser && supabaseClient) {
+                    await saveUserDataToSupabase();
+                }
                 console.log('lastCheck를 오늘 날짜로 설정했습니다.');
             } else {
                 console.log('오늘 날짜로 체크리스트 상태 유지');
@@ -1702,24 +1700,7 @@
                 console.error('Supabase 초기화에 실패했습니다. 인증 기능이 작동하지 않을 수 있습니다.');
             }
 
-            // 데이터 복구 시도
-            const recoveredData = recoverUserData();
-            if (recoveredData) {
-                userData = recoveredData;
-                console.log('데이터가 복구되었습니다.');
-            }
-            
-            // 일기 데이터 복구 시도
-            try {
-                const diaryBackup = sessionStorage.getItem('emotionDiaries_backup');
-                if (diaryBackup && diaries.length === 0) {
-                    diaries = JSON.parse(diaryBackup);
-                    console.log('일기 데이터가 복구되었습니다.');
-                }
-            } catch (e) {
-                console.log('일기 데이터 복구 실패:', e);
-            }
-            
+                        
             // Supabase 인증 상태 확인 먼저 실행
             await checkAuthState();
 

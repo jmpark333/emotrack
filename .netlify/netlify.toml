@@ -1,6 +1,6 @@
+redirectsOrigin = "config"
 plugins = []
 headers = []
-redirects = []
 
 [functions]
 
@@ -8,9 +8,10 @@ redirects = []
 
 [build]
 publish = "/home/rg3270/emotrack"
-publishOrigin = "default"
+publishOrigin = "config"
 
 [build.environment]
+NODE_VERSION = "18"
 
 [build.processing]
 
@@ -23,3 +24,15 @@ publishOrigin = "default"
 [build.processing.js]
 
 [build.services]
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
