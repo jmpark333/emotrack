@@ -54,6 +54,17 @@
             flex: 1;
             margin: 0 5px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+        }
+
+        .stat-card:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         }
         .stat-value {
             font-size: 1.5rem;
@@ -222,9 +233,10 @@
         </div>
         
         <div class="stats">
-            <div class="stat-card">
+            <div class="stat-card" onclick="showStartDate()" style="cursor: pointer;" title="클릭하여 시작일 확인">
                 <div class="stat-value" id="streak">0</div>
                 <div>연속 일수</div>
+                <div style="font-size: 0.7rem; margin-top: 5px; color: rgba(255,255,255,0.7);" id="startDateDisplay"></div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="level">1</div>
@@ -431,6 +443,32 @@
         function updateDailyPoints() {
             const dailyPoints = userData.completedToday.length * 10;
             document.getElementById('dailyPoints').textContent = dailyPoints;
+        }
+
+        // 시작일 표시 함수
+        function showStartDate() {
+            const startDateDisplay = document.getElementById('startDateDisplay');
+
+            if (userData.startDate) {
+                const startDate = new Date(userData.startDate);
+                const formattedDate = startDate.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                if (startDateDisplay.textContent === '') {
+                    startDateDisplay.textContent = `📅 ${formattedDate}`;
+                } else {
+                    startDateDisplay.textContent = '';
+                }
+            } else {
+                if (startDateDisplay.textContent === '') {
+                    startDateDisplay.textContent = '시작일 없음';
+                } else {
+                    startDateDisplay.textContent = '';
+                }
+            }
         }
 
         // 연속 일수 자동 계산 함수
