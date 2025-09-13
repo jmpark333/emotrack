@@ -1193,7 +1193,44 @@
                     // 타임아웃 에러 처리
                     if (error.code === 'TIMEOUT') {
                         console.log('데이터베이스 타임아웃 - 오프라인 모드로 작동');
-                        // 타임아웃 시 기본 데이터 설정
+
+                        // 세션 스토리지에서 마지막으로 저장된 데이터 확인
+                        try {
+                            const cachedData = sessionStorage.getItem('cachedUserData');
+                            if (cachedData) {
+                                const parsedData = JSON.parse(cachedData);
+                                console.log('캐시된 데이터 발견:', parsedData);
+
+                                // 캐시된 데이터가 오늘 날짜인지 확인
+                                const cacheDate = parsedData.lastCheck ? new Date(parsedData.lastCheck) : null;
+                                const today = new Date();
+                                const isSameDay = cacheDate &&
+                                    today.getFullYear() === cacheDate.getFullYear() &&
+                                    today.getMonth() === cacheDate.getMonth() &&
+                                    today.getDate() === cacheDate.getDate();
+
+                                if (isSameDay) {
+                                    userData = {
+                                        streak: parsedData.streak || 0,
+                                        level: parsedData.level || 1,
+                                        points: parsedData.points || 0,
+                                        lastCheck: parsedData.lastCheck,
+                                        completedToday: parsedData.completedToday || [],
+                                        totalPoints: parsedData.totalPoints || 0,
+                                        startDate: parsedData.startDate,
+                                        lastCompletedDate: parsedData.lastCompletedDate,
+                                        breathingPoints: parsedData.breathingPoints || 0
+                                    };
+                                    console.log('오늘 날짜의 캐시된 데이터 사용');
+                                    updateUI();
+                                    return;
+                                }
+                            }
+                        } catch (cacheError) {
+                            console.error('캐시 데이터 읽기 오류:', cacheError);
+                        }
+
+                        // 캐시된 데이터가 없거나 다른 날짜인 경우 기본 데이터 설정
                         userData = {
                             streak: 0,
                             level: 1,
@@ -1206,7 +1243,48 @@
                             breathingPoints: 0
                         };
                         updateUI();
-                        alert('⚠️ 서버 연결이 불안정합니다. 오프라인 모드로 작동합니다.');
+
+                        // 오프라인 모드 안내
+                        if (!document.getElementById('offline-mode-notice')) {
+                            const notice = document.createElement('div');
+                            notice.id = 'offline-mode-notice';
+                            notice.style.cssText = `
+                                position: fixed;
+                                top: 20px;
+                                right: 20px;
+                                background: #ff9800;
+                                color: white;
+                                padding: 15px 20px;
+                                border-radius: 8px;
+                                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                z-index: 10000;
+                                font-size: 14px;
+                                max-width: 300px;
+                            `;
+                            notice.innerHTML = `
+                                <strong>⚠️ 오프라인 모드</strong><br>
+                                서버 연결이 불안정합니다.<br>
+                                체크리스트는 정상적으로 작동하지만 데이터는 저장되지 않을 수 있습니다.
+                                <button onclick="this.parentElement.remove()" style="
+                                    background: white;
+                                    color: #ff9800;
+                                    border: none;
+                                    padding: 5px 10px;
+                                    border-radius: 4px;
+                                    margin-top: 10px;
+                                    cursor: pointer;
+                                    font-size: 12px;
+                                ">닫기</button>
+                            `;
+                            document.body.appendChild(notice);
+
+                            // 30초 후 자동 제거
+                            setTimeout(() => {
+                                if (notice && notice.parentElement) {
+                                    notice.remove();
+                                }
+                            }, 30000);
+                        }
                         return;
                     }
 
@@ -1257,6 +1335,26 @@
                     userData.breathingPoints = data.breathing_points || 0;
 
                     console.log('DB에서 사용자 데이터 로드 완료');
+
+                    // 성공적으로 데이터를 로드한 경우 세션 스토리지에 캐시
+                    try {
+                        const cacheData = {
+                            streak: userData.streak,
+                            level: userData.level,
+                            points: userData.points,
+                            lastCheck: userData.lastCheck,
+                            completedToday: userData.completedToday,
+                            totalPoints: userData.totalPoints,
+                            startDate: userData.startDate,
+                            lastCompletedDate: userData.lastCompletedDate,
+                            breathingPoints: userData.breathingPoints,
+                            cachedAt: new Date().toISOString()
+                        };
+                        sessionStorage.setItem('cachedUserData', JSON.stringify(cacheData));
+                        console.log('데이터 세션 스토리지에 캐시 완료');
+                    } catch (cacheError) {
+                        console.error('데이터 캐싱 오류:', cacheError);
+                    }
                 } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
