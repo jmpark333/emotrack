@@ -575,10 +575,6 @@
         <div class="reward">
             <h3>🏆 오늘의 보상</h3>
             <div id="badges"></div>
-            <div style="text-align: center; margin: 10px 0;">
-                <div style="font-size: 0.9rem; color: #666;">오늘 획득 포인트</div>
-                <div style="font-size: 1.2rem; font-weight: bold; color: var(--primary);" id="dailyPoints">0</div>
-            </div>
             <p id="rewardText">모든 체크리스트를 완료하면 보상이 열립니다!</p>
 
             <!-- 리셋 버튼 추가 -->
@@ -989,7 +985,7 @@
             document.getElementById('streak').textContent = '0';
             document.getElementById('level').textContent = '1';
             document.getElementById('points').textContent = '0';
-            document.getElementById('dailyPoints').textContent = '0';
+            // document.getElementById('dailyPoints').textContent = '0'; // 요소 제거됨
             const progressBar = document.getElementById('progressBar');
             if (progressBar) progressBar.style.width = '0%';
 
@@ -1553,8 +1549,8 @@
             const breathingPoints = userData.breathingPoints || 0;
             const totalDailyPoints = checklistPoints + breathingPoints;
 
-            // 기존 오늘 획득 포인트 표시 업데이트
-            document.getElementById('dailyPoints').textContent = totalDailyPoints;
+            // 기존 오늘 획득 포인트 표시 업데이트 (요소 제거됨)
+            // document.getElementById('dailyPoints').textContent = totalDailyPoints;
 
             // 상세 정보 업데이트
             document.getElementById('checklistPoints').textContent = checklistPoints;
@@ -2028,14 +2024,14 @@
                 document.getElementById('streak').textContent = userData.streak;
                 document.getElementById('level').textContent = userData.level;
                 document.getElementById('points').textContent = userData.points;
-                document.getElementById('dailyPoints').textContent = '0';
+                // document.getElementById('dailyPoints').textContent = '0'; // 요소 제거됨
                 updateLevelProgress();
             } else {
                 // 로그아웃 상태: 기본값으로 UI 업데이트
                 document.getElementById('streak').textContent = '0';
                 document.getElementById('level').textContent = '1';
                 document.getElementById('points').textContent = '0';
-                document.getElementById('dailyPoints').textContent = '0';
+                // document.getElementById('dailyPoints').textContent = '0'; // 요소 제거됨
                 const progressBar = document.getElementById('progressBar');
                 if (progressBar) progressBar.style.width = '0%';
             }
