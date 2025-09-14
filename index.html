@@ -1,9 +1,10 @@
-<!DOCTYPE html>
 <!--
-  정서적 독립 트래커 v1.4.1
-  - 모든 로그인 성공 메시지 제거 완료
-  - 로그인 성공! 데이터를 불러오는 중... 메시지 제거됨
+// 수정 정보: 2025-09-14 15:19:16 KST
+// 커밋내용: fix: DB 컬럼명 일치 및 코드 정리
+// 커밋ID: eb5359e54815f3f17c9d79d0756bdfcf3408e5b0
+// 복구 방법: git revert eb5359e54815f3f17c9d79d0756bdfcf3408e5b0
 -->
+<!DOCTYPE html>
 <html>
 <head>
     <title>정서적 독립 트래커</title>
@@ -715,7 +716,7 @@
 
         let diaries = []; // 데이터베이스 전용
 
-        // ================ 인증 관련 함수 ================
+        // ================ 인증 관련 함수 ================ 
 
         // 인증 모달 열기
         function openAuthModal() {
@@ -1292,7 +1293,7 @@
                         userData.completedToday = dbCompletedToday;
                         console.log('오늘 날짜의 체크리스트 상태 복원:', dbCompletedToday);
                     } else {
-                        // 날짜가 다른 경우 빈 배열으로 초기화
+                        // 날짜가 다른 경우 빈 배열로 초기화
                         userData.completedToday = [];
                         console.log('다른 날짜의 데이터: 체크리스트 초기화');
                     }
@@ -1481,8 +1482,28 @@
             displayDiaries();
         }
 
+        // 레벨업 체크 및 처리
+        async function checkAndHandleLevelUp() {
+            let leveledUp = false;
+            // 여러 레벨업을 한 번에 처리하기 위해 while 루프 사용
+            while (userData.points >= userData.level * 100) {
+                userData.level++;
+                leveledUp = true;
+                console.log('🎉 레벨업! 새로운 레벨:', userData.level);
+                alert(`🎉 축하합니다! 평온 레벨 ${userData.level}에 도달했습니다!`);
+            }
+
+            if (leveledUp) {
+                // 레벨이 변경된 경우, UI를 업데이트하고 데이터베이스에 저장
+                document.getElementById('level').textContent = userData.level;
+                await saveUserDataToSupabase();
+            }
+            // 항상 레벨 진행도 UI를 업데이트
+            updateLevelProgress();
+        }
+
         // 체크 이벤트 처리
-          async function handleCheck(e) {
+        async function handleCheck(e) {
             console.log('handleCheck 호출됨:', {
                 checked: e.target.checked,
                 id: e.target.id,
@@ -1546,16 +1567,8 @@
             // UI 업데이트 (평온포인트 카드 포함)
             document.getElementById('points').textContent = userData.points;
 
-            // 레벨업 체크
-            if(userData.points >= userData.level * 100) {
-                userData.level++;
-                console.log('🎉 레벨업! 레벨:', userData.level);
-                alert(`🎉 레벨업! 평온 레벨 ${userData.level} 달성!`);
-                await saveUserDataToSupabase(); // 레벨업 시 DB 저장
-                updateLevelProgress();
-            } else {
-                updateLevelProgress();
-            }
+            // 레벨업 체크 및 UI 업데이트
+            await checkAndHandleLevelUp();
         }
         
         // 사용자 데이터 저장 (데이터베이스 전용)
@@ -1669,7 +1682,7 @@
         async function resetStreak(event) {
             event.stopPropagation(); // 카드 뒤집기 이벤트 방지
 
-            if (confirm('연속일수를 리셋하시겠습니까?\\n시작일이 오늘로 변경되고 연속일수는 0이 됩니다.')) {
+            if (confirm('연속일수를 리셋하시겠습니까?\n시작일이 오늘로 변경되고 연속일수는 0이 됩니다.')) {
                 const today = new Date().toISOString();
 
                 // 데이터 리셋 (시작일은 오늘로 설정)
@@ -1692,7 +1705,7 @@
                 // 카드 앞면으로 돌아가기
                 document.getElementById('streakCard').classList.remove('flipped');
 
-                alert('연속일수가 리셋되었습니다.\\n오늘부터 새로 시작합니다!');
+                alert('연속일수가 리셋되었습니다.\n오늘부터 새로 시작합니다!');
             }
         }
 
@@ -1785,7 +1798,7 @@
             const total = document.querySelectorAll('.check-input').length;
             const completed = userData.completedToday.length;
             if(completed === total) {
-                document.getElementById('rewardText').innerHTML = 
+                document.getElementById('rewardText').innerHTML =
                     `🎉 완료! 오늘의 보상: <strong>${getRandomReward()}</strong>`;
             }
         }
@@ -1816,35 +1829,37 @@
         function startBreathing() {
             alert("🌬️ 4초 들이마시기 → 7초 참기 → 8초 내쉬기\n\n지금 시작합니다. 화면을 보며 따라해주세요!");
 
-            let step = 0;
             const steps = [
                 { text: "들이마시기 (4초)", duration: 4000 },
                 { text: "참기 (7초)", duration: 7000 },
                 { text: "내쉬기 (8초)", duration: 8000 }
             ];
+            let stepIndex = -1;
 
-            const interval = setInterval(() => {
-                alert(steps[step].text);
-                step++;
-                if(step >= steps.length) {
-                    clearInterval(interval);
+            function nextStep() {
+                stepIndex++;
+                if (stepIndex < steps.length) {
+                    const currentStep = steps[stepIndex];
+                    alert(currentStep.text);
+                    setTimeout(nextStep, currentStep.duration);
+                } else {
+                    // 호흡법 완료
+                    const breathingReward = 5; // 포인트 계산 일치를 위해 5점으로 수정
+                    userData.points += breathingReward;
+                    userData.totalPoints = (userData.totalPoints || 0) + breathingReward;
+                    userData.breathingPoints = (userData.breathingPoints || 0) + breathingReward;
 
-                    // 호흡법 완료 시 10포인트 지급
-                    userData.points += 10;
-                    userData.totalPoints = (userData.totalPoints || 0) + 10; // 총 누적 포인트도 증가
-                    userData.breathingPoints = (userData.breathingPoints || 0) + 10;
+                    alert(`✅ 호흡법 완료! 평온 포인트 ${breathingReward}점 획득!\n이제 조금 더 평온해지셨나요?`);
 
-                    // DB에 저장 (async 처리)
-                    saveUserDataToSupabase().then(() => {
-                        // UI 업데이트
+                    (async () => {
+                        await saveUserDataToSupabase();
                         updateUI();
-                        updateLevelProgress();
                         updateDailyPoints();
-                    });
-
-                    alert("✅ 호흡법 완료! 평온 포인트 10점 획득!\n이제 조금 더 평온해지셨나요?");
+                        await checkAndHandleLevelUp();
+                    })();
                 }
-            }, steps[step]?.duration || 0);
+            }
+            nextStep();
         }
 
         // 감정 일기 저장
@@ -2249,33 +2264,5 @@
             }
         }
     </script>
-
-<!--
-개별 감정일기 삭제 기능 추가 - 2025-09-14
-
-수정한 내용:
-1. loadDiaries() 함수 (1095-1131번 라인): 일기 ID 저장 기능 추가
-2. displayDiaries() 함수 (1887-1914번 라인): 개별 삭제 버튼 추가
-3. deleteDiary(diaryId) 함수 (1916-1947번 라인): 개별 삭제 로직 구현
-4. CSS 스타일 (222-239번 라인): 삭제 버튼 디자인 추가
-
-원래대로 복구하는 방법:
-1. 1116번 라인에서 "id: diary.id," 제거
-2. 1903-1907번 라인 삭제 버튼 HTML 코드 제거
-3. 1916-1947번 라인 deleteDiary 함수 전체 삭제
-4. 222-239번 라인 .delete-btn CSS 스타일 전체 삭제
-5. displayDiaries() 함수를 원래 형태로 복원:
-   diaries.slice(0, 7).forEach(diary => {
-       const diaryItem = document.createElement('div');
-       diaryItem.className = 'diary-item';
-       diaryItem.innerHTML = `
-           <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">📅 ${diary.date}</div>
-           <div><strong>👥 타인:</strong> ${diary.otherPersonAction}</div>
-           <div><strong>👨 나:</strong> ${diary.myReaction}</div>
-           <div><strong>💡 재해석:</strong> <span style="color: var(--success);">${diary.reinterpretation}</span></div>
-       `;
-       diaryList.appendChild(diaryItem);
-   });
--->
 </body>
 </html>
