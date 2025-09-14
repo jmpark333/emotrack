@@ -1,8 +1,8 @@
 <!--
-// 수정 정보: 2025-09-14 15:19:16 KST
-// 커밋내용: fix: DB 컬럼명 일치 및 코드 정리
-// 커밋ID: eb5359e54815f3f17c9d79d0756bdfcf3408e5b0
-// 복구 방법: git revert eb5359e54815f3f17c9d79d0756bdfcf3408e5b0
+// 수정 정보: 2025-09-14 20:10:35 KST
+// 배포내용: fix: 실시간 레벨업 기능 수정 및 호흡법 타이머 개선
+// 커밋ID: c1eae13
+// 복구 방법: git revert c1eae13
 -->
 <!DOCTYPE html>
 <html>
@@ -1174,24 +1174,7 @@
                     userIdType: typeof currentUser.id
                 });
 
-                // 네트워크 연결성 테스트
-                console.log('네트워크 연결성 테스트 시작...');
-                try {
-                    const networkTest = await fetch('https://hpejebnqhgojfxttfbal.supabase.co/rest/v1/', {
-                        method: 'GET',
-                        headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`
-                        }
-                    });
-                    console.log('네트워크 테스트 결과:', {
-                        status: networkTest.status,
-                        ok: networkTest.ok,
-                        statusText: networkTest.statusText
-                    });
-                } catch (networkError) {
-                    console.error('네트워크 연결성 테스트 실패:', networkError);
-                }
+                
 
                 const queryStartTime = Date.now();
                 console.log('쿼리 시작 시간:', queryStartTime);
