@@ -629,20 +629,20 @@
         let supabaseClient = null;
         let currentUser = null;
 
-        // 환경 변수에서 API 키 가져오기
+        // 환경 변수에서 Supabase 설정 가져오기
         const getSupabaseConfig = () => {
             // Netlify 환경 변수만 사용 (보안 강화)
             const supabaseUrl = process.env.SUPABASE_URL;
-            const supabaseKey = process.env.SUPABASE_ANON_KEY;
+            const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
             // 환경 변수 필수 검증
-            if (!supabaseUrl || !supabaseKey) {
+            if (!supabaseUrl || !supabaseAnonKey) {
                 console.error('보안 오류: SUPABASE_URL 또는 SUPABASE_ANON_KEY 환경 변수가 설정되지 않았습니다!');
                 showError('서버 설정 오류가 발생했습니다. 관리자에게 문의해주세요.');
                 return null;
             }
 
-            return { supabaseUrl, supabaseKey };
+            return { supabaseUrl, supabaseAnonKey };
         };
 
         // Supabase 초기화 함수
@@ -659,12 +659,12 @@
                         return;
                     }
 
-                    const { supabaseUrl, supabaseKey } = config;
+                    const { supabaseUrl, supabaseAnonKey } = config;
 
                     try {
                         // Supabase v2 올바른 초기화 방식
                         const { createClient } = supabase;
-                        supabaseClient = createClient(supabaseUrl, supabaseKey);
+                        supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
                         console.log('Supabase 클라이언트 초기화 성공');
                         console.log('클라이언트 타입:', typeof supabaseClient);
