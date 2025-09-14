@@ -1,6 +1,9 @@
 [build]
   publish = "."
-  command = "# no build command"
+  command = """
+    echo "SUPABASE_URL='${SUPABASE_URL}'" > .env
+    echo "SUPABASE_ANON_KEY='${SUPABASE_ANON_KEY}'" >> .env
+  """
 
 [functions]
   directory = "netlify/functions"
@@ -39,3 +42,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[context.production.environment]
+  SUPABASE_URL = ""
+  SUPABASE_ANON_KEY = ""

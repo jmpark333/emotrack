@@ -4,9 +4,16 @@
     <title>정서적 독립 트래커</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Netlify 환경변수 주입을 위한 메타 태그 -->
-    <meta name="supabase-url" content="<%= process.env.SUPABASE_URL %>">
-    <meta name="supabase-anon-key" content="<%= process.env.SUPABASE_ANON_KEY %>">
+    <!-- PWA 설정 수정 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6C5CE7">
+    <!-- Supabase 환경변수 -->
+    <script>
+        window.ENV = {
+            SUPABASE_URL: '<%- process.env.SUPABASE_URL %>',
+            SUPABASE_ANON_KEY: '<%- process.env.SUPABASE_ANON_KEY %>'
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7"></script>
     <style>
         :root {
@@ -372,13 +379,6 @@
             margin-top: 10px;
         }
     </style>
-    
-    <!-- 홈 화면에 추가하기 위한 설정 -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="정서적 독립 트래커">
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi7JeQ7J6QIOyEoOyCrOyKpOyVhOq1rCDrs7XsnLjtirgiLCJzaG9ydF9uYW1lIjoi7JeQ7J6QIOyEoOyCrOyKpOyVhOq1rCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZmZmIiwidGhlbWVfY29sb3IiOiIjNkM1Q0U3In0=">
 </head>
 <body>
     <div class="container">
@@ -531,15 +531,18 @@
 
     <script>
         // Supabase 초기화 수정
-        const supabaseUrl = document.querySelector('meta[name="supabase-url"]').content;
-        const supabaseKey = document.querySelector('meta[name="supabase-anon-key"]').content;
         let supabase = null;
-
         try {
-            if (supabaseUrl && supabaseKey && supabaseUrl !== '<%= process.env.SUPABASE_URL %>') {
+            const supabaseUrl = window.ENV.SUPABASE_URL;
+            const supabaseKey = window.ENV.SUPABASE_ANON_KEY;
+            
+            if (supabaseUrl && supabaseKey && 
+                !supabaseUrl.includes('<%') && 
+                !supabaseKey.includes('<%')) {
                 supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase 초기화 성공');
             } else {
-                console.warn('Supabase 환경변수가 설정되지 않았습니다.');
+                console.warn('환경변수가 올바르게 설정되지 않았습니다');
             }
         } catch (error) {
             console.error('Supabase 초기화 오류:', error);
