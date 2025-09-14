@@ -1083,10 +1083,10 @@
                     console.error('일기 로드 오류:', error);
                     diaries = [];
                 } else {
-                    // 데이터베이스 형식을 기존 형식으로 변환
+                    // 데이터베이스 형식을 기존 형식으로 변환 (하위 호환성 지원)
                     diaries = (data || []).map(diary => ({
                         date: new Date(diary.created_at).toLocaleString(),
-                        otherPersonAction: diary.other_person_action,
+                        otherPersonAction: diary.other_person_action || diary.wife_action, // 기존 필드 지원
                         myReaction: diary.my_reaction,
                         reinterpretation: diary.reinterpretation
                     }));

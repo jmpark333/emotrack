@@ -87,11 +87,15 @@ CREATE TABLE IF NOT EXISTS emotion_diaries (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     wife_action TEXT NOT NULL,
+    other_person_action TEXT, -- 새로 추가된 필드 (하위 호환성)
     my_reaction TEXT NOT NULL,
     reinterpretation TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- 하위 호환성을 위한 컬럼 추가 (v1.4.1 이후)
+-- ALTER TABLE emotion_diaries ADD COLUMN IF NOT EXISTS other_person_action TEXT;
 
 -- RLS (Row Level Security) 활성화
 ALTER TABLE emotion_diaries ENABLE ROW LEVEL SECURITY;
