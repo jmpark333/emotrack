@@ -509,7 +509,7 @@
         <h3>🌅 아침 훈련</h3>
         <div class="check-item">
             <input type="checkbox" class="check-input" id="morning1">
-            <label for="morning1">감정 분리 선언 ("오늘 아내의 감정은 나의 것이 아님" 3번)</label>
+            <label for="morning1">감정 분리 선언 ("오늘 타인의 감정은 나의 것이 아님" 3번)</label>
         </div>
         <div class="check-item">
             <input type="checkbox" class="check-input" id="morning2">
@@ -546,8 +546,8 @@
                 </div>
                 <!-- 로그인한 경우 표시될 일기 입력 폼 -->
                 <div id="diaryForm" style="display: none;">
-                    <label for="wifeAction" class="diary-label">아내의 행동</label>
-                    <input type="text" id="wifeAction" class="diary-input" placeholder="아내의 행동 (예: 고성 질문)" aria-label="아내의 행동">
+                    <label for="otherPersonAction" class="diary-label">타인의 행동</label>
+                    <input type="text" id="otherPersonAction" class="diary-input" placeholder="타인의 행동 (예: 고성 질문)" aria-label="타인의 행동">
                     <label for="myReaction" class="diary-label">내 첫 반응</label>
                     <input type="text" id="myReaction" class="diary-input" placeholder="내 첫 반응 (예: 죄책감 + 분노)" aria-label="내 첫 반응">
                     <label for="reinterpretation" class="diary-label">재해석</label>
@@ -1086,7 +1086,7 @@
                     // 데이터베이스 형식을 기존 형식으로 변환
                     diaries = (data || []).map(diary => ({
                         date: new Date(diary.created_at).toLocaleString(),
-                        wifeAction: diary.wife_action,
+                        otherPersonAction: diary.other_person_action,
                         myReaction: diary.my_reaction,
                         reinterpretation: diary.reinterpretation
                     }));
@@ -1806,11 +1806,11 @@
                 return;
             }
 
-            const wifeAction = document.getElementById('wifeAction').value;
+            const otherPersonAction = document.getElementById('otherPersonAction').value;
             const myReaction = document.getElementById('myReaction').value;
             const reinterpretation = document.getElementById('reinterpretation').value;
 
-            if(!wifeAction || !myReaction || !reinterpretation) {
+            if(!otherPersonAction || !myReaction || !reinterpretation) {
                 alert('모든 필드를 작성해주세요!');
                 return;
             }
@@ -1821,7 +1821,7 @@
                     .from('emotion_diaries')
                     .insert([{
                         user_id: currentUser.id,
-                        wife_action: wifeAction,
+                        other_person_action: otherPersonAction,
                         my_reaction: myReaction,
                         reinterpretation: reinterpretation
                     }])
@@ -1841,7 +1841,7 @@
                 await handleCheck({target: document.getElementById('evening2')});
 
                 // 입력 필드 초기화
-                document.getElementById('wifeAction').value = '';
+                document.getElementById('otherPersonAction').value = '';
                 document.getElementById('myReaction').value = '';
                 document.getElementById('reinterpretation').value = '';
 
@@ -1873,7 +1873,7 @@
                 diaryItem.className = 'diary-item';
                 diaryItem.innerHTML = `
                     <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">📅 ${diary.date}</div>
-                    <div><strong>👩 아내:</strong> ${diary.wifeAction}</div>
+                    <div><strong>👥 타인:</strong> ${diary.otherPersonAction}</div>
                     <div><strong>👨 나:</strong> ${diary.myReaction}</div>
                     <div><strong>💡 재해석:</strong> <span style="color: var(--success);">${diary.reinterpretation}</span></div>
                 `;
