@@ -1922,7 +1922,7 @@
                 diaryItem.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                         <div style="font-size: 0.8rem; color: #666;">📅 ${diary.date}</div>
-                        <button onclick="deleteDiary(${diary.id})" class="delete-btn" title="일기 삭제">🗑️</button>
+                        <button onclick="deleteDiary('${diary.id}')" class="delete-btn" title="일기 삭제">🗑️</button>
                     </div>
                     <div><strong>👥 타인:</strong> ${diary.otherPersonAction}</div>
                     <div><strong>👨 나:</strong> ${diary.myReaction}</div>
