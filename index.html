@@ -1134,7 +1134,7 @@
                     diaries = (data || []).map(diary => ({
                         id: diary.id, // 일기 ID 추가
                         date: new Date(diary.created_at).toLocaleString(),
-                        otherPersonAction: diary.other_person_action || diary.wife_action, // 기존 필드 지원
+                        otherPersonAction: diary.other_person_action,
                         myReaction: diary.my_reaction,
                         reinterpretation: diary.reinterpretation
                     }));
