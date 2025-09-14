@@ -2021,17 +2021,7 @@
                 supabaseClient.auth.onAuthStateChange(async (event, session) => {
                     console.log('인증 상태 변경:', event, session?.user?.email);
 
-                    if (event === 'SIGNED_IN' && session?.user) {
-                        currentUser = session.user;
-                        document.getElementById('userEmail').textContent = session.user.email;
-                        document.getElementById('userSection').style.display = 'flex';
-                        document.getElementById('loginSection').style.display = 'none';
-
-                        await loadUserData();
-                        await checkDateChangeAndReset();
-                        await loadDiaries();
-                        console.log('자동 로그인 성공:', session.user.email);
-                    } else if (event === 'SIGNED_OUT') {
+                    if (event === 'SIGNED_OUT') {
                         currentUser = null;
                         document.getElementById('userSection').style.display = 'none';
                         document.getElementById('loginSection').style.display = 'block';
@@ -2049,38 +2039,39 @@
                             breathingPoints: 0
                         };
                         diaries = [];
-                        console.log('자동 로그아웃 완료');
+                        console.log('로그아웃 처리 완료');
+
+                        // UI 업데이트 (데이터 저장 호출 없이 직접 업데이트)
+                        // 통계 카드 직접 초기화
+                        document.getElementById('streak').textContent = '0';
+                        document.getElementById('level').textContent = '1';
+                        document.getElementById('points').textContent = '0';
+                        document.getElementById('dailyPoints').textContent = '0';
+                        const progressBar = document.getElementById('progressBar');
+                        if (progressBar) progressBar.style.width = '0%';
+
+                        // 일기 섹션 직접 업데이트
+                        const diaryLoginPrompt = document.getElementById('diaryLoginPrompt');
+                        const diaryForm = document.getElementById('diaryForm');
+                        if (diaryLoginPrompt) diaryLoginPrompt.style.display = 'block';
+                        if (diaryForm) diaryForm.style.display = 'none';
+
+                        // 체크리스트 섹션 직접 업데이트
+                        const checklistMessage = document.getElementById('checklistMessage');
+                        if (checklistMessage) {
+                            checklistMessage.innerHTML = '🔒 체크리스트를 사용하려면 로그인이 필요합니다.<br>모든 데이터는 안전하게 데이터베이스에 저장됩니다.';
+                            checklistMessage.style.display = 'block';
+                        }
+
+                        // 모든 체크박스 직접 업데이트
+                        document.querySelectorAll('.check-input').forEach(checkbox => {
+                            checkbox.disabled = true;
+                            checkbox.checked = false;
+                            checkbox.setAttribute('title', '로그인이 필요합니다');
+                            checkbox.parentElement.classList.remove('completed');
+                        });
                     }
-
-                    // UI 업데이트 (데이터 저장 호출 없이 직접 업데이트)
-                    // 통계 카드 직접 초기화
-                    document.getElementById('streak').textContent = '0';
-                    document.getElementById('level').textContent = '1';
-                    document.getElementById('points').textContent = '0';
-                    document.getElementById('dailyPoints').textContent = '0';
-                    const progressBar = document.getElementById('progressBar');
-                    if (progressBar) progressBar.style.width = '0%';
-
-                    // 일기 섹션 직접 업데이트
-                    const diaryLoginPrompt = document.getElementById('diaryLoginPrompt');
-                    const diaryForm = document.getElementById('diaryForm');
-                    if (diaryLoginPrompt) diaryLoginPrompt.style.display = 'block';
-                    if (diaryForm) diaryForm.style.display = 'none';
-
-                    // 체크리스트 섹션 직접 업데이트
-                    const checklistMessage = document.getElementById('checklistMessage');
-                    if (checklistMessage) {
-                        checklistMessage.innerHTML = '🔒 체크리스트를 사용하려면 로그인이 필요합니다.<br>모든 데이터는 안전하게 데이터베이스에 저장됩니다.';
-                        checklistMessage.style.display = 'block';
-                    }
-
-                    // 모든 체크박스 직접 업데이트
-                    document.querySelectorAll('.check-input').forEach(checkbox => {
-                        checkbox.disabled = true;
-                        checkbox.checked = false;
-                        checkbox.setAttribute('title', '로그인이 필요합니다');
-                        checkbox.parentElement.classList.remove('completed');
-                    });
+                    // SIGNED_IN 이벤트는 무시 - 자동 로그인 방지
                 });
             }
 
