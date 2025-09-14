@@ -627,15 +627,39 @@
     <script>
         // Supabase 클라이언트 (전역 변수)
         let supabaseClient = null;
-        let supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3NTA4MTIsImV4cCI6MjA3MzMyNjgxMn0.AibxZdVe1INo5e3voeA6lVkdI9nY46_MuWJWFl2_JAg';
         let currentUser = null;
+
+        // 환경 변수에서 API 키 가져오기
+        const getSupabaseConfig = () => {
+            // Netlify 환경 변수만 사용 (보안 강화)
+            const supabaseUrl = process.env.SUPABASE_URL;
+            const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+            // 환경 변수 필수 검증
+            if (!supabaseUrl || !supabaseKey) {
+                console.error('보안 오류: SUPABASE_URL 또는 SUPABASE_ANON_KEY 환경 변수가 설정되지 않았습니다!');
+                showError('서버 설정 오류가 발생했습니다. 관리자에게 문의해주세요.');
+                return null;
+            }
+
+            return { supabaseUrl, supabaseKey };
+        };
 
         // Supabase 초기화 함수
         function initializeSupabase() {
             return new Promise((resolve) => {
                 waitForSupabase(() => {
-                    // Supabase 초기화
-                    const supabaseUrl = 'https://hpejebnqhgojfxttfbal.supabase.co';
+                    // 환경 변수에서 설정 가져오기
+                    const config = getSupabaseConfig();
+
+                    if (!config) {
+                        console.error('Supabase 설정을 가져올 수 없습니다.');
+                        showError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+                        resolve(false);
+                        return;
+                    }
+
+                    const { supabaseUrl, supabaseKey } = config;
 
                     try {
                         // Supabase v2 올바른 초기화 방식
@@ -1873,8 +1897,15 @@
                 diaryList.innerHTML = '<p style="color: #666;">저장된 일기가 없습니다</p>';
                 return;
             }
-            
-            diaries.slice(0, 7).forEach(diary => {
+
+            // 최초 표시할 일기 개수 (3개)
+            const initialDisplayCount = 3;
+            const hasMoreDiaries = diaries.length > initialDisplayCount;
+
+            // 초기 일기 표시 (최대 3개)
+            const diariesToShow = diaries.slice(0, initialDisplayCount);
+
+            diariesToShow.forEach(diary => {
                 const diaryItem = document.createElement('div');
                 diaryItem.className = 'diary-item';
                 diaryItem.innerHTML = `
@@ -1885,6 +1916,55 @@
                 `;
                 diaryList.appendChild(diaryItem);
             });
+
+            // 더보기 버튼 추가 (3개보다 많은 일기가 있는 경우)
+            if (hasMoreDiaries) {
+                const showMoreButton = document.createElement('button');
+                showMoreButton.className = 'btn btn-primary';
+                showMoreButton.style.cssText = 'margin-top: 15px; width: 100%; font-size: 0.9rem;';
+                showMoreButton.innerHTML = `📖 더보기 (${diaries.length - initialDisplayCount}개 남음)`;
+                showMoreButton.onclick = function() {
+                    showAllDiaries();
+                };
+                diaryList.appendChild(showMoreButton);
+            }
+        }
+
+        // 모든 일기 표시 함수
+        function showAllDiaries() {
+            const diaryList = document.getElementById('diaryList');
+
+            // 현재 표시된 내용에서 더보기 버튼 제거
+            const existingItems = diaryList.querySelectorAll('.diary-item');
+            const showMoreButton = diaryList.querySelector('button');
+            if (showMoreButton) {
+                showMoreButton.remove();
+            }
+
+            // 나머지 일기 표시 (4번째부터)
+            const remainingDiaries = diaries.slice(3);
+            remainingDiaries.forEach(diary => {
+                const diaryItem = document.createElement('div');
+                diaryItem.className = 'diary-item';
+                diaryItem.style.cssText = 'border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;';
+                diaryItem.innerHTML = `
+                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 5px;">📅 ${diary.date}</div>
+                    <div><strong>👥 타인:</strong> ${diary.otherPersonAction}</div>
+                    <div><strong>👨 나:</strong> ${diary.myReaction}</div>
+                    <div><strong>💡 재해석:</strong> <span style="color: var(--success);">${diary.reinterpretation}</span></div>
+                `;
+                diaryList.appendChild(diaryItem);
+            });
+
+            // 접기 버튼 추가
+            const showLessButton = document.createElement('button');
+            showLessButton.className = 'btn btn-secondary';
+            showLessButton.style.cssText = 'margin-top: 15px; width: 100%; font-size: 0.9rem;';
+            showLessButton.innerHTML = '📕 접기';
+            showLessButton.onclick = function() {
+                displayDiaries(); // 다시 초기 상태로
+            };
+            diaryList.appendChild(showLessButton);
         }
 
         // 일기 삭제

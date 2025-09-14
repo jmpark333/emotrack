@@ -1,4 +1,9 @@
 
+# 환경 변수 파일 (보안)
+.env*
+!.env.example
+
+# AI 도구 규칙
 .clinerules/byterover-rules.md
 .kilocode/rules/byterover-rules.md
 .roo/rules/byterover-rules.md
