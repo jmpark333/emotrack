@@ -834,28 +834,32 @@
 
                 currentUser = data.user;
 
-                // 오프라인 모드를 가정하고 바로 UI 업데이트 (데이터 로딩은 비동기로 처리)
+                // 로그인 성공 - UI 업데이트
                 document.getElementById('userEmail').textContent = email;
                 document.getElementById('userSection').style.display = 'flex';
                 document.getElementById('loginSection').style.display = 'none';
-
                 closeAuthModal();
-                showMessage('loginMessage', '로그인 성공! 앱을 시작합니다.', 'success');
+                showMessage('loginMessage', '로그인 성공! 데이터를 불러오는 중...', 'success');
 
-                // 비동기로 데이터 로드 시도 (UI 블로킹 방지)
-                setTimeout(async () => {
-                    try {
-                        await loadUserData();
-                        console.log('백그라운드 데이터 로드 성공');
-                    } catch (loadError) {
-                        console.error('백그라운드 데이터 로드 실패:', loadError);
-                        // 실패해도 사용자는 이미 로그인 상태로 앱 사용 가능
-                    }
+                // 데이터 로드 (동기적으로 처리 - 실패 시 로그아웃)
+                try {
+                    await loadUserData();
+                    console.log('데이터 로드 성공');
                     updateUI();
                     await loadDiaries(); // 로그인 후 감정일기 로드
                     updateDiarySection(); // 일기 섹션 UI 업데이트
                     updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
-                }, 100);
+                    showMessage('loginMessage', '로그인 성공! 모든 기능을 사용할 수 있습니다.', 'success');
+                } catch (loadError) {
+                    console.error('데이터 로드 실패:', loadError);
+                    alert('데이터 로드에 실패했습니다. 다시 로그인해주세요.');
+
+                    // 로그아웃 처리
+                    currentUser = null;
+                    document.getElementById('userSection').style.display = 'none';
+                    document.getElementById('loginSection').style.display = 'block';
+                    showMessage('loginMessage', '로그인 실패: 서버 연결 오류', 'error');
+                }
 
             } catch (error) {
                 console.error('💥 로그인 시스템 오류:', error);
@@ -923,39 +927,16 @@
                 logoutBtn.textContent = '로그아웃 중...';
             }
 
-            if (!supabaseClient || !supabaseClient.auth) {
-                console.log('logout: Supabase 클라이언트 또는 auth 없음');
-                // 로컬 데이터만 초기화
-                performLocalLogout();
-                return;
-            }
-
             try {
-                console.log('Supabase signOut 호출 전');
-
-                // 로그아웃 타임아웃 메커니즘 추가 - 더 짧은 타임아웃
-                const logoutTimeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => {
-                        reject(new Error('Logout timeout after 2 seconds'));
-                    }, 2000); // 2초 타임아웃으로 단축
-                });
-
-                const logoutPromise = supabaseClient.auth.signOut();
-
-                try {
-                    await Promise.race([logoutPromise, logoutTimeoutPromise]);
-                    console.log('Supabase signOut 호출 완료');
-                } catch (timeoutError) {
-                    console.error('로그아웃 타임아웃 발생:', timeoutError);
-                    // 타임아웃 시에도 로컬 데이터는 초기화
+                // Supabase 로그아웃 시도
+                if (supabaseClient && supabaseClient.auth) {
+                    await supabaseClient.auth.signOut();
+                    console.log('Supabase signOut 완료');
                 }
-
-                // 항상 로컬 로그아웃 수행
-                performLocalLogout();
-
             } catch (error) {
-                console.error('로그아웃 오류:', error);
-                // 오류 발생 시에도 로컬 데이터 초기화
+                console.error('Supabase 로그아웃 오류:', error);
+            } finally {
+                // 항상 로컬 데이터 초기화
                 performLocalLogout();
             }
         }
@@ -1140,72 +1121,36 @@
                     .eq('user_id', currentUser.id)
                     .single();
 
-                // 재시도 메커니즘 추가
+                // 간단한 타임아웃 처리 - 재시도 없이 바로 실패 처리
                 let data, error;
-                let retryCount = 0;
-                const maxRetries = 2;
-
-                // 네트워크 연결성 미리 확인
                 try {
-                    console.log('네트워크 연결성 미리 확인...');
-                    const networkController = new AbortController();
-                    const networkTimeout = setTimeout(() => networkController.abort(), 3000);
+                    console.log('데이터베이스 쿼리 시작');
 
-                    await fetch('https://api.supabase.com', {
-                        method: 'HEAD',
-                        mode: 'no-cors',
-                        signal: networkController.signal
+                    // 타임아웃 메커니즘
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => {
+                            reject(new Error('Database query timeout after 10 seconds'));
+                        }, 10000); // 10초 타임아웃
                     });
-                    clearTimeout(networkTimeout);
-                    console.log('네트워크 연결 확인 완료');
-                } catch (networkError) {
-                    console.warn('네트워크 연결 불안정:', networkError);
-                    // 네트워크 문제 시 빠르게 오프라인 모드로 전환
-                    throw new Error('Network connectivity issue');
-                }
 
-                while (retryCount <= maxRetries) {
-                    try {
-                        console.log(`쿼리 시도 ${retryCount + 1}/${maxRetries + 1}`);
+                    const result = await Promise.race([optimizedQuery, timeoutPromise]);
+                    data = result.data;
+                    error = result.error;
 
-                        // 타임아웃 메커니즘 추가 (더 짧은 타임아웃)
-                        const timeoutPromise = new Promise((_, reject) => {
-                            setTimeout(() => {
-                                reject(new Error('Database query timeout after 5 seconds'));
-                            }, 5000); // 5초 타임아웃으로 단축
-                        });
-
-                        const result = await Promise.race([optimizedQuery, timeoutPromise]);
-                        data = result.data;
-                        error = result.error;
-
-                        if (!error) {
-                            console.log(`쿼리 성공 (시도 ${retryCount + 1})`);
-                            break; // 성공 시 루프 종료
-                        }
-
-                        retryCount++;
-
-                        if (retryCount <= maxRetries) {
-                            const backoffTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // 지수 백오프, 최대 5초
-                            console.log(`쿼리 실패, ${backoffTime}ms 후 재시도 (${retryCount}/${maxRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, backoffTime));
-                        }
-
-                    } catch (timeoutError) {
-                        console.error(`쿼리 타임아웃 (시도 ${retryCount + 1}):`, timeoutError);
-                        retryCount++;
-
-                        if (retryCount <= maxRetries) {
-                            const backoffTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000); // 지수 백오프, 최대 5초
-                            console.log(`타임아웃, ${backoffTime}ms 후 재시도 (${retryCount}/${maxRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, backoffTime));
-                        } else {
-                            // 모든 재시도 실패 시 기본 데이터 사용
-                            data = null;
-                            error = { code: 'TIMEOUT', message: 'Database query timeout after retries' };
-                        }
+                    if (error) {
+                        throw error;
                     }
+
+                    console.log('쿼리 성공');
+
+                } catch (queryError) {
+                    console.error('데이터베이스 쿼리 실패:', queryError);
+                    if (queryError.message && queryError.message.includes('timeout')) {
+                        error = { code: 'TIMEOUT', message: 'Database query timeout' };
+                    } else {
+                        error = queryError;
+                    }
+                    data = null;
                 }
 
                 const queryEndTime = Date.now();
@@ -1222,113 +1167,16 @@
                 if (error && error.code !== 'PGRST116') { // PGRST116: 데이터 없음
                     console.error('데이터 로드 오류:', error);
 
-                    // 타임아웃 에러 처리
+                    // 데이터베이스 타임아웃 에러 처리
                     if (error.code === 'TIMEOUT') {
-                        console.log('데이터베이스 타임아웃 - 오프라인 모드로 작동');
+                        console.error('데이터베이스 연결 타임아웃:', error);
+                        alert('서버 연결이 불안정합니다. 잠시 후 다시 로그인해주세요.');
 
-                        // 세션 스토리지에서 마지막으로 저장된 데이터 확인
-                        try {
-                            const cachedData = sessionStorage.getItem('cachedUserData');
-                            if (cachedData) {
-                                const parsedData = JSON.parse(cachedData);
-                                console.log('캐시된 데이터 발견:', parsedData);
-
-                                // 캐시된 데이터가 오늘 날짜인지 확인
-                                const cacheDate = parsedData.lastCheck ? new Date(parsedData.lastCheck) : null;
-                                const today = new Date();
-                                const isSameDay = cacheDate &&
-                                    today.getFullYear() === cacheDate.getFullYear() &&
-                                    today.getMonth() === cacheDate.getMonth() &&
-                                    today.getDate() === cacheDate.getDate();
-
-                                if (isSameDay) {
-                                    userData = {
-                                        streak: parsedData.streak || 0,
-                                        level: parsedData.level || 1,
-                                        points: parsedData.points || 0,
-                                        lastCheck: parsedData.lastCheck,
-                                        completedToday: parsedData.completedToday || [],
-                                        totalPoints: parsedData.totalPoints || 0,
-                                        startDate: parsedData.startDate,
-                                        lastCompletedDate: parsedData.lastCompletedDate,
-                                        breathingPoints: parsedData.breathingPoints || 0
-                                    };
-                                    console.log('오늘 날짜의 캐시된 데이터 사용');
-                                    updateUI();
-                                    return;
-                                }
-                            }
-                        } catch (cacheError) {
-                            console.error('캐시 데이터 읽기 오류:', cacheError);
-                        }
-
-                        // 캐시된 데이터가 없거나 다른 날짜인 경우 기본 데이터 설정
-                        userData = {
-                            streak: 0,
-                            level: 1,
-                            points: 0,
-                            lastCheck: null,
-                            completedToday: [],
-                            totalPoints: 0,
-                            startDate: null,
-                            lastCompletedDate: null,
-                            breathingPoints: 0
-                        };
-                        updateUI();
-
-                        // 로그인 후 첫 사용이거나 데이터 조회 실패 시 새 데이터 생성 시도
-                        if (currentUser) {
-                            console.log('로그인 성공 후 데이터 조회 실패 - 새 사용자 데이터 생성 시도');
-                            setTimeout(async () => {
-                                try {
-                                    await createNewUserData();
-                                } catch (createError) {
-                                    console.error('새 사용자 데이터 생성 실패:', createError);
-                                }
-                            }, 1000); // 1초 후 시도
-                        }
-
-                        // 오프라인 모드 안내
-                        if (!document.getElementById('offline-mode-notice')) {
-                            const notice = document.createElement('div');
-                            notice.id = 'offline-mode-notice';
-                            notice.style.cssText = `
-                                position: fixed;
-                                top: 20px;
-                                right: 20px;
-                                background: #ff9800;
-                                color: white;
-                                padding: 15px 20px;
-                                border-radius: 8px;
-                                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                                z-index: 10000;
-                                font-size: 14px;
-                                max-width: 300px;
-                            `;
-                            notice.innerHTML = `
-                                <strong>⚠️ 오프라인 모드</strong><br>
-                                서버 연결이 불안정합니다.<br>
-                                체크리스트는 정상적으로 작동하지만 데이터는 저장되지 않을 수 있습니다.
-                                <button onclick="this.parentElement.remove()" style="
-                                    background: white;
-                                    color: #ff9800;
-                                    border: none;
-                                    padding: 5px 10px;
-                                    border-radius: 4px;
-                                    margin-top: 10px;
-                                    cursor: pointer;
-                                    font-size: 12px;
-                                ">닫기</button>
-                            `;
-                            document.body.appendChild(notice);
-
-                            // 30초 후 자동 제거
-                            setTimeout(() => {
-                                if (notice && notice.parentElement) {
-                                    notice.remove();
-                                }
-                            }, 30000);
-                        }
+                        // 로그아웃 처리
+                        currentUser = null;
+                        document.getElementById('userSection').style.display = 'none';
+                        document.getElementById('loginSection').style.display = 'block';
+                        closeAuthModal();
                         return;
                     }
 
@@ -1380,26 +1228,7 @@
 
                     console.log('DB에서 사용자 데이터 로드 완료');
 
-                    // 성공적으로 데이터를 로드한 경우 세션 스토리지에 캐시
-                    try {
-                        const cacheData = {
-                            streak: userData.streak,
-                            level: userData.level,
-                            points: userData.points,
-                            lastCheck: userData.lastCheck,
-                            completedToday: userData.completedToday,
-                            totalPoints: userData.totalPoints,
-                            startDate: userData.startDate,
-                            lastCompletedDate: userData.lastCompletedDate,
-                            breathingPoints: userData.breathingPoints,
-                            cachedAt: new Date().toISOString()
-                        };
-                        sessionStorage.setItem('cachedUserData', JSON.stringify(cacheData));
-                        console.log('데이터 세션 스토리지에 캐시 완료');
-                    } catch (cacheError) {
-                        console.error('데이터 캐싱 오류:', cacheError);
-                    }
-                } else {
+                    } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
                 }
@@ -1459,53 +1288,36 @@
                         onConflict: 'user_id'
                     });
 
-                // 저장 재시도 메커니즘
+                // 간단한 타임아웃 처리 - 재시도 없이 바로 실패 처리
                 let data, error;
-                let saveRetryCount = 0;
-                const maxSaveRetries = 2;
+                try {
+                    console.log('데이터베이스 저장 시작');
 
-                while (saveRetryCount <= maxSaveRetries) {
-                    try {
-                        console.log(`저장 쿼리 시도 ${saveRetryCount + 1}/${maxSaveRetries + 1}`);
+                    // 타임아웃 메커니즘
+                    const saveTimeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => {
+                            reject(new Error('Database save timeout after 10 seconds'));
+                        }, 10000); // 10초 타임아웃
+                    });
 
-                        // 더 짧은 타임아웃
-                        const saveTimeoutPromise = new Promise((_, reject) => {
-                            setTimeout(() => {
-                                reject(new Error('Database save timeout after 5 seconds'));
-                            }, 5000); // 5초 타임아웃
-                        });
+                    const result = await Promise.race([optimizedSaveQuery, saveTimeoutPromise]);
+                    data = result.data;
+                    error = result.error;
 
-                        const result = await Promise.race([optimizedSaveQuery, saveTimeoutPromise]);
-                        data = result.data;
-                        error = result.error;
-
-                        if (!error) {
-                            console.log(`저장 쿼리 성공 (시도 ${saveRetryCount + 1})`);
-                            break; // 성공 시 루프 종료
-                        }
-
-                        saveRetryCount++;
-
-                        if (saveRetryCount <= maxSaveRetries) {
-                            const backoffTime = Math.min(1000 * Math.pow(2, saveRetryCount - 1), 5000); // 지수 백오프, 최대 5초
-                            console.log(`저장 실패, ${backoffTime}ms 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, backoffTime));
-                        }
-
-                    } catch (timeoutError) {
-                        console.error(`저장 쿼리 타임아웃 (시도 ${saveRetryCount + 1}):`, timeoutError);
-                        saveRetryCount++;
-
-                        if (saveRetryCount <= maxSaveRetries) {
-                            const backoffTime = Math.min(1000 * Math.pow(2, saveRetryCount - 1), 5000); // 지수 백오프, 최대 5초
-                            console.log(`저장 타임아웃, ${backoffTime}ms 후 재시도 (${saveRetryCount}/${maxSaveRetries})`);
-                            await new Promise(resolve => setTimeout(resolve, backoffTime));
-                        } else {
-                            // 모든 재시도 실패 시 에러 처리
-                            data = null;
-                            error = { code: 'TIMEOUT', message: 'Database save timeout after retries' };
-                        }
+                    if (error) {
+                        throw error;
                     }
+
+                    console.log('저장 성공');
+
+                } catch (saveError) {
+                    console.error('데이터베이스 저장 실패:', saveError);
+                    if (saveError.message && saveError.message.includes('timeout')) {
+                        error = { code: 'TIMEOUT', message: 'Database save timeout' };
+                    } else {
+                        error = saveError;
+                    }
+                    data = null;
                 }
 
                 const saveEndTime = Date.now();
@@ -1516,10 +1328,10 @@
 
                 if (error) {
                     console.error('데이터 저장 오류:', error);
-
-                    // 타임아웃 에러 처리
                     if (error.code === 'TIMEOUT') {
-                        alert('⚠️ 서버 연결이 불안정하여 데이터 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+                        throw new Error('Database save timeout');
+                    } else {
+                        throw error;
                     }
                 } else {
                     console.log('데이터 저장 성공');
@@ -1673,37 +1485,16 @@
                 email: currentUser?.email
             });
 
-            // 로컬 세션 스토리지에 먼저 저장 (데이터 지속성 보장)
-            try {
-                const localData = {
-                    streak: userData.streak,
-                    level: userData.level,
-                    points: userData.points,
-                    lastCheck: userData.lastCheck,
-                    completedToday: userData.completedToday,
-                    totalPoints: userData.totalPoints,
-                    startDate: userData.startDate,
-                    lastCompletedDate: userData.lastCompletedDate,
-                    breathingPoints: userData.breathingPoints,
-                    savedAt: new Date().toISOString()
-                };
-                sessionStorage.setItem('cachedUserData', JSON.stringify(localData));
-                console.log('로컬 세션 스토리지에 데이터 저장 완료');
-            } catch (localError) {
-                console.error('로컬 저장 오류:', localError);
-            }
-
-            // Supabase에 저장 시도 (비동기, 실패해도 로컬 데이터는 보존)
+            // Supabase에 저장 (로그인한 경우만)
             if (currentUser && supabaseClient) {
                 console.log('Supabase에 데이터 저장 시도...');
-                setTimeout(async () => {
-                    try {
-                        await saveUserDataToSupabase();
-                        console.log('Supabase 데이터 저장 완료');
-                    } catch (saveError) {
-                        console.error('Supabase 저장 실패 (로컬 데이터는 보존됨):', saveError);
-                    }
-                }, 0); // 다음 이벤트 루프에서 실행
+                try {
+                    await saveUserDataToSupabase();
+                    console.log('Supabase 데이터 저장 완료');
+                } catch (saveError) {
+                    console.error('Supabase 저장 실패:', saveError);
+                    alert('데이터 저장에 실패했습니다. 서버 연결을 확인해주세요.');
+                }
             } else {
                 console.log('비로그인 상태에서는 데이터를 저장하지 않음');
             }
