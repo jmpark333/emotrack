@@ -963,8 +963,11 @@
             // 일기 섹션 직접 업데이트
             const diaryLoginPrompt = document.getElementById('diaryLoginPrompt');
             const diaryForm = document.getElementById('diaryForm');
+            const diarySections = document.querySelectorAll('.diary-section');
             if (diaryLoginPrompt) diaryLoginPrompt.style.display = 'block';
             if (diaryForm) diaryForm.style.display = 'none';
+            // 모든 감정 일기 섹션 숨기기
+            diarySections.forEach(section => section.style.display = 'none');
 
             // 체크리스트 섹션 직접 업데이트
             const checklistMessage = document.getElementById('checklistMessage');
@@ -2039,12 +2042,17 @@
             // 일기 섹션 초기 UI 설정
             const diaryLoginPrompt = document.getElementById('diaryLoginPrompt');
             const diaryForm = document.getElementById('diaryForm');
+            const diarySections = document.querySelectorAll('.diary-section');
             if (currentUser && supabaseClient) {
                 diaryLoginPrompt.style.display = 'none';
                 diaryForm.style.display = 'block';
+                // 모든 감정 일기 섹션 표시
+                diarySections.forEach(section => section.style.display = 'block');
             } else {
                 diaryLoginPrompt.style.display = 'block';
                 diaryForm.style.display = 'none';
+                // 모든 감정 일기 섹션 숨기기
+                diarySections.forEach(section => section.style.display = 'none');
             }
 
             // 체크리스트 섹션 초기 UI 설정
