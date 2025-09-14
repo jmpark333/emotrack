@@ -1,6 +1,6 @@
 # 정서적 독립 트래커 (Emotional Independence Tracker)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-web-lightgrey.svg)
 
@@ -78,7 +78,18 @@ npx http-server
 
 - **라이브 사이트**: [https://emotrack-app.netlify.app](https://emotrack-app.netlify.app)
 - **배포 방식**: Netlify 자동 배포
-- **마지막 배포**: 2025-09-10
+- **마지막 배포**: 2025-09-14
+- **현재 버전**: v1.4.0
+
+## 📋 변경 로그
+
+모든 버전의 변경 사항은 [CHANGELOG.md](CHANGELOG.md)에서 확인할 수 있습니다.
+
+### 주요 업데이트
+- **v1.4.0**: 인증 시스템 재설계, 페이지 새로고침 시 데이터 유지 기능
+- **v1.3.1**: 연속일수 클릭 기능, 시작일 표시
+- **v1.3.0**: 자동 연속일수 계산 시스템
+- **v1.2.0**: 레벨 진행도 표시 기능
 
 ## 🗂️ 프로젝트 구조
 
@@ -86,6 +97,7 @@ npx http-server
 emotrack/
 ├── index.html          # 메인 애플리케이션 파일
 ├── README.md           # 프로젝트 문서
+├── CHANGELOG.md        # 변경 로그
 ├── .netlify/           # Netlify 설정 파일
 └── .git/              # Git 버전 관리
 ```
