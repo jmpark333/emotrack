@@ -1158,11 +1158,13 @@
                 // 네트워크 연결성 테스트
                 console.log('네트워크 연결성 테스트 시작...');
                 try {
+                    // 환경 변수에서 직접 API 키 가져오기
+                    const apiKey = process.env.SUPABASE_ANON_KEY;
                     const networkTest = await fetch('https://hpejebnqhgojfxttfbal.supabase.co/rest/v1/', {
                         method: 'GET',
                         headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`
+                            'apikey': apiKey,
+                            'Authorization': `Bearer ${apiKey}`
                         }
                     });
                     console.log('네트워크 테스트 결과:', {
