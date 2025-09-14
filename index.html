@@ -845,7 +845,6 @@
                     await loadDiaries(); // 로그인 후 감정일기 로드
                     updateDiarySection(); // 일기 섹션 UI 업데이트
                     updateChecklistSection(); // 체크리스트 섹션 UI 업데이트
-                    showMessage('loginMessage', '로그인 성공! 모든 기능을 사용할 수 있습니다.', 'success');
                 } catch (loadError) {
                     console.error('데이터 로드 실패:', loadError);
                     alert('데이터 로드에 실패했습니다. 다시 로그인해주세요.');
