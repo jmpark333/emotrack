@@ -30,6 +30,7 @@ build/
 *.min.js
 *.min.css
 
-# Netlify 배포용 함수 (개발 환경에서 무시)
-.netlify/functions/
+# Netlify 빌드 캐시만 무시 (함수는 배포되어야 함)
+.netlify/functions/node_modules/
+.netlify/functions/.cache/
 
