@@ -922,13 +922,13 @@
             try {
                 const newUserData = {
                     user_id: currentUser.id,
-                    attendance_count: 0,
+                    streak: 0, // attendance_count 대신 streak 사용
                     level: 1,
                     points: 0,
                     last_check: null,
                     completed_today: [],
                     total_points: 0,
-                    last_attendance_date: null,
+                    start_date: null, // last_attendance_date 대신 start_date 사용
                     attendance_points: 0,
                     breathing_points: 0
                 };
@@ -946,15 +946,15 @@
 
                 console.log('새 사용자 데이터 생성 성공:', data);
 
-                // userData 업데이트
+                // userData 업데이트 (기존 컬럼 사용)
                 userData = {
-                    attendanceCount: data.attendance_count || 0,
+                    attendanceCount: data.streak || 0, // streak를 attendanceCount로 사용
                     level: data.level || 1,
                     points: data.points || 0,
                     lastCheck: data.last_check,
                     completedToday: data.completed_today || [],
                     totalPoints: data.total_points || 0,
-                    lastAttendanceDate: data.last_attendance_date,
+                    lastAttendanceDate: data.start_date, // start_date를 lastAttendanceDate로 사용
                     attendancePoints: data.attendance_points || 0
                 };
 
@@ -1193,10 +1193,10 @@
                 const queryStartTime = Date.now();
                 console.log('⏱️ 쿼리 시작 시간:', queryStartTime);
 
-                // 쿼리 최적화: 필요한 필드만 선택
+                // 쿼리 최적화: 필요한 필드만 선택 (기존 streak 컬럼 호환)
                 const optimizedQuery = supabaseClient
                     .from('user_data')
-                    .select('attendance_count, level, points, last_check, completed_today, total_points, last_attendance_date, attendance_points, breathing_points')
+                    .select('streak, level, points, last_check, completed_today, total_points, start_date, attendance_points, breathing_points')
                     .eq('user_id', currentUser.id)
                     .single();
 
@@ -1304,13 +1304,13 @@
                         console.log('🔄 다른 날짜의 데이터: 체크리스트 초기화');
                     }
 
-                    // 다른 필드들은 DB 데이터로 업데이트 (기존 필드와의 호환성 확보)
-                    userData.attendanceCount = data.attendance_count || data.streak || 0; // 기존 streak 필드 호환
+                    // 다른 필드들은 DB 데이터로 업데이트 (기존 필드 사용)
+                    userData.attendanceCount = data.streak || 0; // streak 컬럼을 attendanceCount로 사용
                     userData.level = data.level || 1;
                     userData.points = data.points || 0;
                     userData.lastCheck = data.last_check;
                     userData.totalPoints = data.total_points || 0;
-                    userData.lastAttendanceDate = data.last_attendance_date || data.start_date; // 기존 start_date 호환
+                    userData.lastAttendanceDate = data.start_date; // start_date를 lastAttendanceDate로 사용
                     userData.attendancePoints = data.attendance_points || 0;
                     userData.breathingPoints = data.breathing_points || 0;
 
@@ -1321,12 +1321,6 @@
                         totalPoints: userData.totalPoints,
                         completedToday: userData.completedToday
                     });
-
-                    // 만약 기존 streak 데이터가 있으면 출석 데이터로 변환
-                    if (data.streak && !data.attendance_count) {
-                        console.log('🔄 기존 streak 데이터를 attendance로 변환:', data.streak);
-                        await saveUserDataToSupabase(); // 새로운 형식으로 저장
-                    }
 
                 } else {
                     console.log('🆕 DB에 데이터 없음 - 새 사용자 데이터 생성 시작');
@@ -1379,18 +1373,18 @@
                 const saveStartTime = Date.now();
                 console.log('저장 쿼리 시작 시간:', saveStartTime);
 
-                // 저장 쿼리 최적화: 작은 데이터셋으로
+                // 저장 쿼리 최적화: 작은 데이터셋으로 (기존 컬럼 사용)
                 const optimizedSaveQuery = supabaseClient
                     .from('user_data')
                     .upsert({
                         user_id: currentUser.id,
-                        attendance_count: userData.attendanceCount,
+                        streak: userData.attendanceCount, // attendanceCount를 streak 컬럼에 저장
                         level: userData.level,
                         points: userData.points,
                         last_check: userData.lastCheck,
                         completed_today: userData.completedToday,
                         total_points: userData.totalPoints,
-                        last_attendance_date: userData.lastAttendanceDate,
+                        start_date: userData.lastAttendanceDate, // lastAttendanceDate를 start_date에 저장
                         attendance_points: userData.attendancePoints,
                         breathing_points: userData.breathingPoints || 0,
                         updated_at: new Date().toISOString()
