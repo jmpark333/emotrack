@@ -1524,6 +1524,9 @@
                 leveledUp = true;
                 console.log('🎉 레벨업! 새로운 레벨:', userData.level);
                 alert(`🎉 축하합니다! 평온 레벨 ${userData.level}에 도달했습니다!`);
+                
+                // 동기부여 메시지 표시
+                showMotivationalMessage('levelUp');
             }
 
             if (leveledUp) {
@@ -1568,6 +1571,9 @@
                     e.target.setAttribute('title', '오늘은 다시 해제할 수 없습니다');
 
                     console.log(`체크 완료: ${id}, 포인트 +10 (현재: ${userData.points})`);
+                    
+                    // 동기부여 메시지 표시
+                    showMotivationalMessage('points');
                 } else {
                     // 이미 체크된 항목을 다시 체크하려는 경우 (중복 방지)
                     console.log(`이미 체크된 항목입니다: ${id}`);
@@ -1842,6 +1848,9 @@
                 alert(`✅ 출석 완료!
 출석 일수: ${userData.attendanceCount}일
 획득 포인트: ${bonus}점`);
+                
+                // 동기부여 메시지 표시
+                showMotivationalMessage('attendance');
 
             } catch (error) {
                 console.error('출석 처리 중 오류:', error);
@@ -1872,14 +1881,58 @@
             const badgesContainer = document.getElementById('badges');
             badgesContainer.innerHTML = '';
             
+            // 출석 관련 배지
+            if(userData.attendanceCount >= 1) {
+                badgesContainer.innerHTML += '<span class="badge">🌱 첫 걸음</span>';
+            }
             if(userData.attendanceCount >= 3) {
                 badgesContainer.innerHTML += '<span class="badge">🔥 3일 출석</span>';
             }
             if(userData.attendanceCount >= 7) {
                 badgesContainer.innerHTML += '<span class="badge">⭐ 출석 수호자</span>';
             }
+            if(userData.attendanceCount >= 14) {
+                badgesContainer.innerHTML += '<span class="badge">🌟 2주 달성</span>';
+            }
+            if(userData.attendanceCount >= 30) {
+                badgesContainer.innerHTML += '<span class="badge">👑 한 달 정복</span>';
+            }
+            
+            // 레벨 관련 배지
+            if(userData.level >= 2) {
+                badgesContainer.innerHTML += '<span class="badge">📈 성장 중</span>';
+            }
             if(userData.level >= 3) {
                 badgesContainer.innerHTML += '<span class="badge">🛡️ 정신의 방패</span>';
+            }
+            if(userData.level >= 5) {
+                badgesContainer.innerHTML += '<span class="badge">⚡ 평온 마스터</span>';
+            }
+            if(userData.level >= 10) {
+                badgesContainer.innerHTML += '<span class="badge">🏆 전설의 평온</span>';
+            }
+            
+            // 포인트 관련 배지
+            if(userData.totalPoints >= 100) {
+                badgesContainer.innerHTML += '<span class="badge">💯 100점 클럽</span>';
+            }
+            if(userData.totalPoints >= 500) {
+                badgesContainer.innerHTML += '<span class="badge">💎 500점 엘리트</span>';
+            }
+            if(userData.totalPoints >= 1000) {
+                badgesContainer.innerHTML += '<span class="badge">👑 1000점 왕</span>';
+            }
+            
+            // 호흡법 관련 배지
+            const breathingCount = userData.breathingPoints / 5; // 5점당 1회
+            if(breathingCount >= 1) {
+                badgesContainer.innerHTML += '<span class="badge">🧘 호흡 시작</span>';
+            }
+            if(breathingCount >= 3) {
+                badgesContainer.innerHTML += '<span class="badge">🌬️ 호흡의 달인</span>';
+            }
+            if(breathingCount >= 5) {
+                badgesContainer.innerHTML += '<span class="badge">🕊️ 평온의 호흡</span>';
             }
             
             // 보상 메시지
@@ -1888,6 +1941,91 @@
             if(completed === total) {
                 document.getElementById('rewardText').innerHTML =
                     `🎉 완료! 오늘의 보상: <strong>${getRandomReward()}</strong>`;
+                showMotivationalMessage('allChecklists');
+            }
+        }
+
+        // 동기부여 메시지 표시 함수
+        function showMotivationalMessage(type) {
+            const messages = {
+                attendance: [
+                    "🎉 출석 완료! 꾸준함이 당신을 더 강하게 만듭니다!",
+                    "✨ 오늘도 출석! 당신의 평온한 여정이 계속되고 있어요!",
+                    "🌟 출석 성공! 작은 습관이 큰 변화를 만듭니다!",
+                    "💪 출석 완료! 당신의 의지가 대단해요!",
+                    "🔥 출석 성공! 평온한 하루의 시작이에요!"
+                ],
+                breathing: [
+                    "🌬️ 호흡법 완료! 마음이 차분해지고 있어요.",
+                    "🧘 호흡 성공! 스트레스가 줄어들고 있어요.",
+                    "🕊️ 호흡 완료! 평온함이 찾아오고 있어요.",
+                    "💨 호흡법 성공! 마음의 안정을 되찾았어요.",
+                    "🌿 호흡 완료! 내면의 평화를 느끼세요."
+                ],
+                levelUp: [
+                    "🎉 레벨업! 당신의 평온함이 한 단계 성장했어요!",
+                    "✨ 레벨업! 정서적 독립에 한 걸음 더 가까워졌어요!",
+                    "🌟 레벨업! 당신의 노력이 빛을 발하고 있어요!",
+                    "💪 레벨업! 평온한 삶의 전문가가 되어가고 있어요!",
+                    "🏆 레벨업! 당신의 인내심이 결실을 맺었어요!"
+                ],
+                points: [
+                    "💰 포인트 획득! 당신의 노력이 보상받고 있어요!",
+                    "✨ 포인트 획득! 작은 성공이 모여 큰 성과를 만듭니다!",
+                    "🌟 포인트 획득! 당신의 꾸준함이 빛나고 있어요!",
+                    "💎 포인트 획득! 평온한 삶의 투자가 되고 있어요!",
+                    "🏆 포인트 획득! 당신의 성장이 눈에 띄네요!"
+                ],
+                allChecklists: [
+                    "🎉 모든 체크리스트 완료! 오늘 당신은 정말 대단해요!",
+                    "✨ 완벽한 하루! 당신의 평온함이 빛나고 있어요!",
+                    "🌟 모든 훈련 완료! 당신의 의지가 정말 대단해요!",
+                    "💪 전부 성공! 평온한 삶의 주인공이 되었어요!",
+                    "🏆 완벽한 성과! 당신의 노력이 결실을 맺었어요!"
+                ]
+            };
+
+            const messageList = messages[type] || [];
+            if (messageList.length > 0) {
+                const randomMessage = messageList[Math.floor(Math.random() * messageList.length)];
+                
+                // 메시지 표시를 위한 모달 생성
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    text-align: center;
+                    font-size: 1.1rem;
+                    max-width: 300px;
+                    animation: motivationPop 0.5s ease-out;
+                `;
+
+                // 애니메이션 추가
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes motivationPop {
+                        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+
+                modal.innerHTML = randomMessage;
+                document.body.appendChild(modal);
+
+                // 3초 후 자동으로 제거
+                setTimeout(() => {
+                    modal.remove();
+                    style.remove();
+                }, 3000);
             }
         }
 
@@ -1939,6 +2077,9 @@
                     userData.lastBreathingTime = new Date().toISOString(); // 호흡법 실행 시간 저장
 
                     alert(`✅ 호흡법 완료! 평온 포인트 ${breathingReward}점 획득!\n이제 조금 더 평온해지셨나요?`);
+                    
+                    // 동기부여 메시지 표시
+                    showMotivationalMessage('breathing');
 
                     (async () => {
                         await saveUserDataToSupabase();
