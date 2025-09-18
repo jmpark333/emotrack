@@ -710,9 +710,8 @@
             totalPoints: 0,
             lastAttendanceDate: null,
             attendancePoints: 0,
-            breathingPoints: 0,
-            lastBreathingTime: null,
-            todaysBreathingPoints: 0 // 오늘의 호흡법 포인트 (일일 초기화)
+            breathingPoints: 0, // breathing_points가 오늘의 호흡법 포인트 (일일 초기화)
+            lastBreathingTime: null
         };
 
         let diaries = []; // 데이터베이스 전용
@@ -953,8 +952,7 @@
                     lastAttendanceDate: data.start_date, // start_date를 lastAttendanceDate로 사용
                     attendancePoints: 0, // attendance_points 컬럼이 없으므로 0으로 초기화
                     breathingPoints: data.breathing_points || 0, // breathing_points 컬럼에서 값 로드
-                    lastBreathingTime: data.last_breathing_time, // 호흡법 마지막 실행 시간 로드
-                    todaysBreathingPoints: 0 // 오늘의 호흡법 포인트 초기화 (DB에 저장하지 않음)
+                    lastBreathingTime: data.last_breathing_time // 호흡법 마지막 실행 시간 로드
                 };
 
                 updateUI();
@@ -1313,7 +1311,6 @@
                     userData.attendancePoints = 0; // attendance_points 컬럼이 없으므로 0으로 초기화
                     userData.breathingPoints = data.breathing_points || 0; // breathing_points 컬럼에서 값 로드
                     userData.lastBreathingTime = data.last_breathing_time; // 호흡법 마지막 실행 시간 로드
-                    userData.todaysBreathingPoints = 0; // 오늘의 호흡법 포인트 초기화 (DB에 저장하지 않음)
 
                     // 날짜 변경 시 오늘의 호흡법 포인트 초기화
                     resetDailyBreathingPointsIfNeeded();
@@ -1324,7 +1321,7 @@
                         level: userData.level,
                         totalPoints: userData.totalPoints,
                         completedToday: userData.completedToday,
-                        todaysBreathingPoints: userData.todaysBreathingPoints
+                        breathingPoints: userData.breathingPoints
                     });
 
                 } else {
@@ -1731,7 +1728,7 @@
 
         // 오늘의 호흡법 포인트 계산 함수
         function getTodaysBreathingPoints() {
-            return userData.todaysBreathingPoints || 0; // 오늘의 호흡법 포인트만 반환
+            return userData.breathingPoints || 0; // breathing_points가 오늘의 호흡법 포인트
         }
 
         // 날짜 변경 시 오늘의 호흡법 포인트 초기화 함수
@@ -1746,7 +1743,11 @@
 
             if (!isSameDay) {
                 // 날짜가 변경된 경우: 오늘의 호흡법 포인트 초기화
-                userData.todaysBreathingPoints = 0;
+                userData.breathingPoints = 0;
+                // 데이터베이스에도 즉시 저장
+                if (currentUser && supabaseClient) {
+                    saveUserDataToSupabase();
+                }
             }
         }
 
@@ -1934,8 +1935,7 @@
                     const breathingReward = 5; // 포인트 계산 일치를 위해 5점으로 수정
                     userData.points += breathingReward;
                     userData.totalPoints = (userData.totalPoints || 0) + breathingReward;
-                    userData.breathingPoints = (userData.breathingPoints || 0) + breathingReward;
-                    userData.todaysBreathingPoints = (userData.todaysBreathingPoints || 0) + breathingReward; // 오늘의 호흡법 포인트 증가
+                    userData.breathingPoints = (userData.breathingPoints || 0) + breathingReward; // breathing_points가 오늘의 호흡법 포인트
                     userData.lastBreathingTime = new Date().toISOString(); // 호흡법 실행 시간 저장
 
                     alert(`✅ 호흡법 완료! 평온 포인트 ${breathingReward}점 획득!\n이제 조금 더 평온해지셨나요?`);
