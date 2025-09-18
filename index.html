@@ -928,9 +928,8 @@
                     last_check: null,
                     completed_today: [],
                     total_points: 0,
-                    start_date: null, // last_attendance_date 대신 start_date 사용
-                    attendance_points: 0,
-                    breathing_points: 0
+                    start_date: null // last_attendance_date 대신 start_date 사용
+                    // attendance_points와 breathing_points 컬럼이 없으므로 제외
                 };
 
                 const { data, error } = await supabaseClient
@@ -946,7 +945,7 @@
 
                 console.log('새 사용자 데이터 생성 성공:', data);
 
-                // userData 업데이트 (기존 컬럼 사용)
+                // userData 업데이트 (기존 컬럼만 사용)
                 userData = {
                     attendanceCount: data.streak || 0, // streak를 attendanceCount로 사용
                     level: data.level || 1,
@@ -955,7 +954,8 @@
                     completedToday: data.completed_today || [],
                     totalPoints: data.total_points || 0,
                     lastAttendanceDate: data.start_date, // start_date를 lastAttendanceDate로 사용
-                    attendancePoints: data.attendance_points || 0
+                    attendancePoints: 0, // attendance_points 컬럼이 없으므로 0으로 초기화
+                    breathingPoints: 0 // breathing_points 컬럼이 없으므로 0으로 초기화
                 };
 
                 updateUI();
@@ -1193,10 +1193,10 @@
                 const queryStartTime = Date.now();
                 console.log('⏱️ 쿼리 시작 시간:', queryStartTime);
 
-                // 쿼리 최적화: 필요한 필드만 선택 (기존 streak 컬럼 호환)
+                // 쿼리 최적화: 존재하는 필드만 선택 (컬럼 누락 문제 해결)
                 const optimizedQuery = supabaseClient
                     .from('user_data')
-                    .select('streak, level, points, last_check, completed_today, total_points, start_date, attendance_points, breathing_points')
+                    .select('streak, level, points, last_check, completed_today, total_points, start_date')
                     .eq('user_id', currentUser.id)
                     .single();
 
@@ -1304,15 +1304,15 @@
                         console.log('🔄 다른 날짜의 데이터: 체크리스트 초기화');
                     }
 
-                    // 다른 필드들은 DB 데이터로 업데이트 (기존 필드 사용)
+                    // 다른 필드들은 DB 데이터로 업데이트 (기존 필드만 사용)
                     userData.attendanceCount = data.streak || 0; // streak 컬럼을 attendanceCount로 사용
                     userData.level = data.level || 1;
                     userData.points = data.points || 0;
                     userData.lastCheck = data.last_check;
                     userData.totalPoints = data.total_points || 0;
                     userData.lastAttendanceDate = data.start_date; // start_date를 lastAttendanceDate로 사용
-                    userData.attendancePoints = data.attendance_points || 0;
-                    userData.breathingPoints = data.breathing_points || 0;
+                    userData.attendancePoints = 0; // attendance_points 컬럼이 없으므로 0으로 초기화
+                    userData.breathingPoints = 0; // breathing_points 컬럼이 없으므로 0으로 초기화
 
                     console.log('✅ DB에서 사용자 데이터 로드 완료:', {
                         attendanceCount: userData.attendanceCount,
@@ -1373,7 +1373,7 @@
                 const saveStartTime = Date.now();
                 console.log('저장 쿼리 시작 시간:', saveStartTime);
 
-                // 저장 쿼리 최적화: 작은 데이터셋으로 (기존 컬럼 사용)
+                // 저장 쿼리 최적화: 존재하는 컬럼만 사용 (컬럼 누락 문제 해결)
                 const optimizedSaveQuery = supabaseClient
                     .from('user_data')
                     .upsert({
@@ -1385,8 +1385,6 @@
                         completed_today: userData.completedToday,
                         total_points: userData.totalPoints,
                         start_date: userData.lastAttendanceDate, // lastAttendanceDate를 start_date에 저장
-                        attendance_points: userData.attendancePoints,
-                        breathing_points: userData.breathingPoints || 0,
                         updated_at: new Date().toISOString()
                     }, {
                         onConflict: 'user_id'
