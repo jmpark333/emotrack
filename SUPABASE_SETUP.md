@@ -170,3 +170,14 @@ const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 1. RLS 정책이 올바르게 설정되었는지 확인합니다.
 2. 사용자가 로그인되어 있는지 확인합니다.
 3. 콘솔에서 오류 메시지를 확인합니다.
+
+### 호흡법 포인트 관련 컬럼 추가
+다음 SQL을 실행하여 호흡법 포인트 기능에 필요한 컬럼을 추가합니다:
+
+```sql
+-- breathing_points 컬럼 추가 (호흡법 포인트 저장)
+ALTER TABLE user_data ADD COLUMN IF NOT EXISTS breathing_points INTEGER DEFAULT 0;
+
+-- last_breathing_time 컬럼 추가 (호흡법 마지막 실행 시간 저장)
+ALTER TABLE user_data ADD COLUMN IF NOT EXISTS last_breathing_time TIMESTAMP;
+```
