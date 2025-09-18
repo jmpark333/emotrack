@@ -82,6 +82,10 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'breathing_points') THEN
         ALTER TABLE user_data ADD COLUMN breathing_points INTEGER DEFAULT 0;
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'last_breathing_time') THEN
+        ALTER TABLE user_data ADD COLUMN last_breathing_time TIMESTAMP;
+    END IF;
 END $$;
 
 -- 사용자 자신의 데이터만 읽을 수 있는 정책
