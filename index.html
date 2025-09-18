@@ -1193,7 +1193,7 @@
                 // 쿼리 최적화: 존재하는 필드만 선택 (컬럼 누락 문제 해결)
                 const optimizedQuery = supabaseClient
                     .from('user_data')
-                    .select('streak, level, points, last_check, completed_today, total_points, start_date')
+                    .select('streak, level, points, last_check, completed_today, total_points, start_date, breathing_points, last_breathing_time')
                     .eq('user_id', currentUser.id)
                     .single();
 
