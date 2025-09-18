@@ -31,14 +31,15 @@ SQL Editor에서 다음 SQL을 실행하여 사용자 데이터 테이블을 생
 CREATE TABLE user_data (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    streak INTEGER DEFAULT 0,
+    attendance_count INTEGER DEFAULT 0,
     level INTEGER DEFAULT 1,
     points INTEGER DEFAULT 0,
     last_check TIMESTAMP,
     completed_today TEXT[] DEFAULT '{}',
     total_points INTEGER DEFAULT 0,
-    start_date DATE,
-    last_completed_date DATE,
+    last_attendance_date TIMESTAMP,
+    attendance_points INTEGER DEFAULT 0,
+    breathing_points INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
@@ -47,6 +48,41 @@ CREATE TABLE user_data (
 
 -- RLS (Row Level Security) 활성화
 ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
+
+-- 기존 테이블이 있는 경우 마이그레이션
+-- 기존 streak 관련 컬럼 삭제 및 출석 관련 컬럼 추가
+DO $$
+BEGIN
+    -- 컬럼 존재 여부 확인 후 삭제
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'streak') THEN
+        ALTER TABLE user_data DROP COLUMN streak;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'start_date') THEN
+        ALTER TABLE user_data DROP COLUMN start_date;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'last_completed_date') THEN
+        ALTER TABLE user_data DROP COLUMN last_completed_date;
+    END IF;
+
+    -- 새 컬럼 추가 (존재하지 않는 경우만)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'attendance_count') THEN
+        ALTER TABLE user_data ADD COLUMN attendance_count INTEGER DEFAULT 0;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'last_attendance_date') THEN
+        ALTER TABLE user_data ADD COLUMN last_attendance_date TIMESTAMP;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'attendance_points') THEN
+        ALTER TABLE user_data ADD COLUMN attendance_points INTEGER DEFAULT 0;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'breathing_points') THEN
+        ALTER TABLE user_data ADD COLUMN breathing_points INTEGER DEFAULT 0;
+    END IF;
+END $$;
 
 -- 사용자 자신의 데이터만 읽을 수 있는 정책
 CREATE POLICY "Users can view own data"
