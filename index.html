@@ -1156,32 +1156,42 @@
 
         // 사용자 데이터 로드
         async function loadUserData() {
+            console.group('📥 사용자 데이터 로드 시작');
+
+            console.log('loadUserData 함수 호출 시작:', {
+                currentUser: !!currentUser,
+                userId: currentUser?.id,
+                supabaseClient: !!supabaseClient
+            });
+
             if (!currentUser || !supabaseClient) {
                 // 로그인하지 않은 경우 - 데이터 초기화는 checkAuthState에서 처리
-                console.log('loadUserData: 로그인하지 않은 상태');
+                console.log('❌ 로그인하지 않은 상태 - 데이터 로드 중단');
+                console.groupEnd();
                 return;
             }
 
             try {
-                console.log('사용자 데이터 조회 시작:', { userId: currentUser.id, email: currentUser.email });
-                console.log('Supabase 클라이언트 상태:', {
+                console.log('🔍 사용자 데이터 조회 시작:', {
+                    userId: currentUser.id,
+                    email: currentUser.email
+                });
+                console.log('🔧 Supabase 클라이언트 상태:', {
                     supabaseClient: !!supabaseClient,
                     auth: !!supabaseClient?.auth,
                     from: typeof supabaseClient?.from
                 });
 
                 // 쿼리 실행 전 상세 로깅
-                console.log('DB 쿼리 실행 직전 - user_id:', currentUser.id);
-                console.log('쿼리 파라미터 확인:', {
+                console.log('📋 DB 쿼리 실행 직전 - user_id:', currentUser.id);
+                console.log('📋 쿼리 파라미터 확인:', {
                     table: 'user_data',
                     userId: currentUser.id,
                     userIdType: typeof currentUser.id
                 });
 
-                
-
                 const queryStartTime = Date.now();
-                console.log('쿼리 시작 시간:', queryStartTime);
+                console.log('⏱️ 쿼리 시작 시간:', queryStartTime);
 
                 // 쿼리 최적화: 필요한 필드만 선택
                 const optimizedQuery = supabaseClient
@@ -1193,7 +1203,7 @@
                 // 간단한 타임아웃 처리 - 재시도 없이 바로 실패 처리
                 let data, error;
                 try {
-                    console.log('데이터베이스 쿼리 시작');
+                    console.log('🚀 데이터베이스 쿼리 시작');
 
                     // 타임아웃 메커니즘
                     const timeoutPromise = new Promise((_, reject) => {
@@ -1210,10 +1220,10 @@
                         throw error;
                     }
 
-                    console.log('쿼리 성공');
+                    console.log('✅ 쿼리 성공');
 
                 } catch (queryError) {
-                    console.error('데이터베이스 쿼리 실패:', queryError);
+                    console.error('❌ 데이터베이스 쿼리 실패:', queryError);
                     if (queryError.message && queryError.message.includes('timeout')) {
                         error = { code: 'TIMEOUT', message: 'Database query timeout' };
                     } else {
@@ -1223,22 +1233,25 @@
                 }
 
                 const queryEndTime = Date.now();
-                console.log('쿼리 완료 시간:', queryEndTime);
-                console.log('쿼리 소요 시간:', queryEndTime - queryStartTime, 'ms');
-                console.log('데이터 조회 결과:', { data, error });
-                console.log('데이터 조회 완료 - 다음 단계 진행');
+                console.log('⏱️ 쿼리 완료 시간:', queryEndTime);
+                console.log('⏱️ 쿼리 소요 시간:', queryEndTime - queryStartTime, 'ms');
+                console.log('📊 데이터 조회 결과:', {
+                    hasData: !!data,
+                    error: error?.message || 'No error'
+                });
+
                 if (data) {
-                    console.log('조회된 데이터 필드:', Object.keys(data));
-                    console.log('diaries 필드:', data.diaries);
-                    console.log('breathing_points 필드:', data.breathing_points);
+                    console.log('📋 조회된 데이터 필드:', Object.keys(data));
+                    console.log('📋 breathing_points 필드:', data.breathing_points);
+                    console.log('📋 completed_today 필드:', data.completed_today);
                 }
 
                 if (error && error.code !== 'PGRST116') { // PGRST116: 데이터 없음
-                    console.error('데이터 로드 오류:', error);
+                    console.error('❌ 데이터 로드 오류:', error);
 
                     // 데이터베이스 타임아웃 에러 처리
                     if (error.code === 'TIMEOUT') {
-                        console.error('데이터베이스 연결 타임아웃:', error);
+                        console.error('❌ 데이터베이스 연결 타임아웃:', error);
                         alert('서버 연결이 불안정합니다. 잠시 후 다시 로그인해주세요.');
 
                         // 로그아웃 처리
@@ -1246,18 +1259,22 @@
                         document.getElementById('userSection').style.display = 'none';
                         document.getElementById('loginSection').style.display = 'block';
                         closeAuthModal();
+                        console.groupEnd();
                         return;
                     }
 
                     // 406 오류인 경우 새 사용자 데이터 생성
                     if (error.code === '406') {
-                        console.log('새 사용자 데이터 생성...');
+                        console.log('🆕 새 사용자 데이터 생성...');
                         await createNewUserData();
                     }
+                    console.groupEnd();
                     return;
                 }
 
                 if (data) {
+                    console.log('✅ DB에서 사용자 데이터 발견 - 업데이트 시작');
+
                     // DB에서 가져온 데이터로 업데이트 (완전히 덮어쓰지 않음)
                     const dbCompletedToday = data.completed_today || [];
                     const today = new Date();
@@ -1268,21 +1285,23 @@
                         today.getMonth() === dbLastCheck.getMonth() &&
                         today.getDate() === dbLastCheck.getDate();
 
-                    console.log('DB 데이터 로드 (날짜 비교):', {
+                    console.log('📅 날짜 비교 분석:', {
                         dbCompletedToday,
                         dbLastCheck: data.last_check,
                         today: today.toISOString(),
-                        isSameDay
+                        isSameDay,
+                        todayDate: `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`,
+                        dbDate: dbLastCheck ? `${dbLastCheck.getFullYear()}-${dbLastCheck.getMonth()}-${dbLastCheck.getDate()}` : 'null'
                     });
 
                     // 오늘 날짜의 데이터인 경우에만 completedToday 유지
                     if (isSameDay) {
                         userData.completedToday = dbCompletedToday;
-                        console.log('오늘 날짜의 체크리스트 상태 복원:', dbCompletedToday);
+                        console.log('✅ 오늘 날짜의 체크리스트 상태 복원:', dbCompletedToday);
                     } else {
                         // 날짜가 다른 경우 빈 배열로 초기화
                         userData.completedToday = [];
-                        console.log('다른 날짜의 데이터: 체크리스트 초기화');
+                        console.log('🔄 다른 날짜의 데이터: 체크리스트 초기화');
                     }
 
                     // 다른 필드들은 DB 데이터로 업데이트 (기존 필드와의 호환성 확보)
@@ -1295,30 +1314,41 @@
                     userData.attendancePoints = data.attendance_points || 0;
                     userData.breathingPoints = data.breathing_points || 0;
 
-                    console.log('DB에서 사용자 데이터 로드 완료:', {
+                    console.log('✅ DB에서 사용자 데이터 로드 완료:', {
                         attendanceCount: userData.attendanceCount,
                         points: userData.points,
                         level: userData.level,
-                        totalPoints: userData.totalPoints
+                        totalPoints: userData.totalPoints,
+                        completedToday: userData.completedToday
                     });
 
                     // 만약 기존 streak 데이터가 있으면 출석 데이터로 변환
                     if (data.streak && !data.attendance_count) {
-                        console.log('기존 streak 데이터를 attendance로 변환:', data.streak);
+                        console.log('🔄 기존 streak 데이터를 attendance로 변환:', data.streak);
                         await saveUserDataToSupabase(); // 새로운 형식으로 저장
                     }
 
                 } else {
-                    // 새 사용자 데이터 생성
+                    console.log('🆕 DB에 데이터 없음 - 새 사용자 데이터 생성 시작');
                     await saveUserData();
                 }
 
+                console.log('✅ loadUserData 완료 - 최종 userData 상태:', {
+                    attendanceCount: userData.attendanceCount,
+                    level: userData.level,
+                    points: userData.points,
+                    totalPoints: userData.totalPoints,
+                    completedToday: userData.completedToday
+                });
+
             } catch (error) {
-                console.error('사용자 데이터 로드 오류:', error);
+                console.error('❌ 사용자 데이터 로드 오류:', error);
+                console.error('❌ 에러 스택:', error.stack);
             }
 
             // 오늘 획득 포인트 UI 업데이트
             updateDailyPoints();
+            console.groupEnd();
         }
 
         // 사용자 데이터 저장 (Supabase)
@@ -2189,26 +2219,8 @@
             // 인증 상태 변경 리스너 비활성화 - checkAuthState만으로 처리
             // onAuthStateChange 리스너는 페이지 새로고침 시 데이터 리셋 문제를 일으킴
 
-            // 초기 인증 상태 확인
+            // 초기 인증 상태 확인 (내부에서 UI 업데이트 처리)
             await checkAuthState();
-
-            // 최종 UI 업데이트 (데이터 저장 호출 없이 직접 업데이트)
-            if (currentUser && supabaseClient) {
-                // 로그인 상태: 현재 데이터로 UI 업데이트
-                document.getElementById('attendanceCount').textContent = userData.attendanceCount;
-                document.getElementById('level').textContent = userData.level;
-                document.getElementById('points').textContent = userData.points;
-                // document.getElementById('dailyPoints').textContent = '0'; // 요소 제거됨
-                updateLevelProgress();
-            } else {
-                // 로그아웃 상태: 기본값으로 UI 업데이트
-                document.getElementById('attendanceCount').textContent = '0';
-                document.getElementById('level').textContent = '1';
-                document.getElementById('points').textContent = '0';
-                // document.getElementById('dailyPoints').textContent = '0'; // 요소 제거됨
-                const progressBar = document.getElementById('progressBar');
-                if (progressBar) progressBar.style.width = '0%';
-            }
 
             // 일기 섹션 초기 UI 설정
             const diaryLoginPrompt = document.getElementById('diaryLoginPrompt');
@@ -2257,20 +2269,31 @@
 
         // 인증 상태 확인
         async function checkAuthState() {
+            console.group('🔐 인증 상태 확인 시작');
+
             if (!supabaseClient || !supabaseClient.auth) {
-                console.log('Supabase 클라이언트 또는 auth 모듈을 사용할 수 없음');
+                console.error('❌ Supabase 클라이언트 또는 auth 모듈을 사용할 수 없음');
                 return;
             }
 
             try {
+                console.log('📋 세션 조회 시작...');
                 const { data: { session }, error } = await supabaseClient.auth.getSession();
 
                 if (error) {
-                    console.log('인증된 사용자 없음:', error.message);
+                    console.error('❌ 세션 조회 실패:', error.message);
                     return;
                 }
 
+                console.log('📋 세션 조회 결과:', session ? '세션 있음' : '세션 없음');
+
                 if (session && session.user) {
+                    console.log('✅ 유효한 세션 발견:', {
+                        userId: session.user.id,
+                        email: session.user.email,
+                        expiresAt: new Date(session.expires_at * 1000)
+                    });
+
                     // 세션이 있으면 자동으로 데이터 로드 (새로고침 시 데이터 유지)
                     currentUser = session.user;
                     document.getElementById('userEmail').textContent = session.user.email;
@@ -2278,25 +2301,67 @@
                     document.getElementById('loginSection').style.display = 'none';
 
                     try {
+                        console.log('🔄 사용자 데이터 자동 로드 시작...');
+
+                        // 데이터 로드 전 상태 기록
+                        console.log('📊 데이터 로드 전:', {
+                            attendanceCount: userData.attendanceCount,
+                            level: userData.level,
+                            points: userData.points,
+                            completedToday: userData.completedToday
+                        });
+
                         await loadUserData();
                         await loadDiaries();
+
+                        // 데이터 로드 후 상태 기록
+                        console.log('📊 데이터 로드 후:', {
+                            attendanceCount: userData.attendanceCount,
+                            level: userData.level,
+                            points: userData.points,
+                            completedToday: userData.completedToday
+                        });
+
+                        console.log('✅ UI 업데이트 시작...');
                         updateUI();
-                        console.log('세션 확인 및 데이터 자동 로드 완료:', session.user.email);
+                        console.log('✅ 세션 확인 및 데이터 자동 로드 완료:', session.user.email);
+
                     } catch (error) {
-                        console.error('데이터 자동 로드 실패:', error);
+                        console.error('❌ 데이터 자동 로드 실패:', error);
+                        console.error('에러 상세:', error.stack);
                         // 데이터 로드 실패시에도 세션은 유지
                         showMessage('loginMessage', '데이터 로드에 실패했습니다. 다시 시도해주세요.', 'error');
                     }
                 } else {
+                    console.log('⚠️ 세션 없음 - 비로그인 상태로 초기화');
                     // 비로그인 상태인 경우 UI만 초기화 (데이터는 보존)
                     currentUser = null;
                     document.getElementById('userSection').style.display = 'none';
                     document.getElementById('loginSection').style.display = 'block';
-                    console.log('비로그인 상태: UI 초기화됨');
+
+                    // userData를 기본값으로 초기화
+                    Object.assign(userData, {
+                        attendanceCount: 0,
+                        level: 1,
+                        points: 0,
+                        lastCheck: null,
+                        completedToday: [],
+                        totalPoints: 0,
+                        lastAttendanceDate: null,
+                        attendancePoints: 0,
+                        breathingPoints: 0
+                    });
+
+                    console.log('🔄 비로그인 상태 UI 업데이트');
+                    updateUI();
+                    console.log('✅ 비로그인 상태 초기화 완료');
                 }
             } catch (error) {
-                console.error('인증 상태 확인 오류:', error);
+                console.error('❌ 인증 상태 확인 시스템 오류:', error);
+                console.error('에러 상세:', error.stack);
             }
+
+            console.groupEnd();
         }
     </script>
 </body>

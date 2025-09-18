@@ -34,3 +34,4 @@ build/
 .netlify/functions/node_modules/
 .netlify/functions/.cache/
 
+CLAUDE.md
