@@ -496,16 +496,19 @@
         <div class="stats">
             <div class="stat-card" id="attendanceCard" onclick="flipAttendanceCard()" title="클릭하여 출석 정보 확인">
                 <div class="card-front">
-                    <div class="stat-value" id="attendanceCount" style="margin-bottom: 5px;">0</div>
-                    <div style="font-size: 0.9rem;">출석 일수</div>
-                </div>
-                <div class="card-back">
-                    <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px;">📅 출석 정보</div>
-                    <div id="lastAttendanceDate" style="font-size: 0.8rem; margin-bottom: 10px;">마지막 출석: 없음</div>
-                    <div id="attendanceBonus" style="font-size: 0.8rem; margin-bottom: 10px;">오늘의 보상: 10점</div>
-                    <button id="attendanceBtn" onclick="attend(event)" style="background: #00B894; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#00a085'" onmouseout="this.style.background='#00B894'">
+                    <div class="stat-value" id="attendanceCount" style="margin-bottom: 8px;">0</div>
+                    <div style="font-size: 0.9rem; margin-bottom: 8px;">출석 일수</div>
+                    <button id="attendanceBtn" onclick="attend(event)" style="background: #00B894; color: white; border: none; padding: 6px 10px; border-radius: 5px; font-size: 0.7rem; cursor: pointer; transition: background 0.2s; margin-top: 5px;" onmouseover="this.style.background='#00a085'" onmouseout="this.style.background='#00B894'">
                         ✅ 출석하기
                     </button>
+                </div>
+                <div class="card-back">
+                    <div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px;">📊 출석 정보</div>
+                    <div id="lastAttendanceDate" style="font-size: 0.8rem; margin-bottom: 8px;">마지막 출석: 없음</div>
+                    <div id="todayPoints" style="font-size: 0.8rem; margin-bottom: 8px;">오늘 획득: 0점</div>
+                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.8); text-align: center;">
+                        총 출석 포인트: <span id="totalAttendancePoints">0</span>점
+                    </div>
                 </div>
             </div>
             <div class="stat-card" id="levelCard" onclick="flipLevelCard()" title="클릭하여 레벨 진행도 확인">
@@ -1282,19 +1285,30 @@
                         console.log('다른 날짜의 데이터: 체크리스트 초기화');
                     }
 
-                    // 다른 필드들은 DB 데이터로 업데이트
-                    userData.attendanceCount = data.attendance_count || 0;
+                    // 다른 필드들은 DB 데이터로 업데이트 (기존 필드와의 호환성 확보)
+                    userData.attendanceCount = data.attendance_count || data.streak || 0; // 기존 streak 필드 호환
                     userData.level = data.level || 1;
                     userData.points = data.points || 0;
                     userData.lastCheck = data.last_check;
                     userData.totalPoints = data.total_points || 0;
-                    userData.lastAttendanceDate = data.last_attendance_date;
+                    userData.lastAttendanceDate = data.last_attendance_date || data.start_date; // 기존 start_date 호환
                     userData.attendancePoints = data.attendance_points || 0;
                     userData.breathingPoints = data.breathing_points || 0;
 
-                    console.log('DB에서 사용자 데이터 로드 완료');
+                    console.log('DB에서 사용자 데이터 로드 완료:', {
+                        attendanceCount: userData.attendanceCount,
+                        points: userData.points,
+                        level: userData.level,
+                        totalPoints: userData.totalPoints
+                    });
 
-                    } else {
+                    // 만약 기존 streak 데이터가 있으면 출석 데이터로 변환
+                    if (data.streak && !data.attendance_count) {
+                        console.log('기존 streak 데이터를 attendance로 변환:', data.streak);
+                        await saveUserDataToSupabase(); // 새로운 형식으로 저장
+                    }
+
+                } else {
                     // 새 사용자 데이터 생성
                     await saveUserData();
                 }
@@ -1418,10 +1432,16 @@
 
         // 화면 업데이트
         function updateUI() {
-            // 출석 일수 표시
-            document.getElementById('attendanceCount').textContent = userData.attendanceCount;
-            document.getElementById('level').textContent = userData.level;
-            document.getElementById('points').textContent = userData.points;
+            // 출석 일수 표시 (데이터가 있는 경우만 업데이트)
+            if (userData.attendanceCount !== undefined) {
+                document.getElementById('attendanceCount').textContent = userData.attendanceCount;
+            }
+            if (userData.level !== undefined) {
+                document.getElementById('level').textContent = userData.level;
+            }
+            if (userData.points !== undefined) {
+                document.getElementById('points').textContent = userData.points;
+            }
 
             // 출석 버튼 상태 업데이트
             updateAttendanceButton();
@@ -1655,7 +1675,8 @@
         // 출석 정보 표시 업데이트 함수
         function updateAttendanceDisplay() {
             const lastAttendanceDate = document.getElementById('lastAttendanceDate');
-            const attendanceBonus = document.getElementById('attendanceBonus');
+            const todayPoints = document.getElementById('todayPoints');
+            const totalAttendancePoints = document.getElementById('totalAttendancePoints');
 
             if (userData.lastAttendanceDate) {
                 const lastDate = new Date(userData.lastAttendanceDate);
@@ -1669,9 +1690,14 @@
                 lastAttendanceDate.textContent = '마지막 출석: 없음';
             }
 
-            // 오늘의 보상 표시
-            const bonus = calculateAttendanceBonus();
-            attendanceBonus.textContent = `오늘의 보상: ${bonus}점`;
+            // 오늘 획득 포인트 계산
+            const checklistPoints = userData.completedToday.length * 10;
+            const breathingPoints = userData.breathingPoints || 0;
+            const attendancePoints = checkIfAttendedToday() ? calculateAttendanceBonus() : 0;
+            const totalTodayPoints = checklistPoints + breathingPoints + attendancePoints;
+
+            todayPoints.textContent = `오늘 획득: ${totalTodayPoints}점`;
+            totalAttendancePoints.textContent = userData.attendancePoints || 0;
         }
 
         // 출석 보상 계산 함수
@@ -1701,14 +1727,25 @@
 
         // 오늘 출석 여부 확인 함수
         function checkIfAttendedToday() {
-            if (!userData.lastAttendanceDate) return false;
+            if (!userData.lastAttendanceDate) {
+                console.log('오늘 출석 확인: lastAttendanceDate 없음');
+                return false;
+            }
 
             const today = new Date();
             const lastAttendance = new Date(userData.lastAttendanceDate);
 
-            return today.getFullYear() === lastAttendance.getFullYear() &&
-                   today.getMonth() === lastAttendance.getMonth() &&
-                   today.getDate() === lastAttendance.getDate();
+            const isToday = today.getFullYear() === lastAttendance.getFullYear() &&
+                          today.getMonth() === lastAttendance.getMonth() &&
+                          today.getDate() === lastAttendance.getDate();
+
+            console.log('오늘 출석 확인:', {
+                lastAttendanceDate: userData.lastAttendanceDate,
+                today: today.toISOString(),
+                isToday: isToday
+            });
+
+            return isToday;
         }
 
         // 출석 처리 함수
