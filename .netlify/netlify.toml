@@ -1,29 +1,42 @@
+functionsDirectory = "/home/rg3270/emotrack/netlify/functions"
+functionsDirectoryOrigin = "config"
 headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
 
-[functions]
-
-[functions."*"]
-
 [build]
 publish = "/home/rg3270/emotrack"
 publishOrigin = "config"
+commandOrigin = "config"
+command = "    echo \"SUPABASE_URL='${SUPABASE_URL}'\" > .env\n    echo \"SUPABASE_ANON_KEY='${SUPABASE_ANON_KEY}'\" >> .env\n  "
+functions = "/home/rg3270/emotrack/netlify/functions"
 
 [build.environment]
-NODE_VERSION = "18"
+NODE_VERSION = "16"
 
 [build.processing]
+skip_processing = false
 
 [build.processing.css]
 
 [build.processing.html]
+pretty_urls = true
 
 [build.processing.images]
 
 [build.processing.js]
 
 [build.services]
+
+[template]
+
+[template.environment]
+SUPABASE_URL = "Supabase project URL"
+SUPABASE_ANON_KEY = "Supabase anonymous key"
+
+[functions]
+
+[functions."*"]
 
 [[headers]]
 for = "/*.html"

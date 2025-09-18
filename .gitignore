@@ -3,12 +3,33 @@
 .env*
 !.env.example
 
-# AI 도구 규칙
-.clinerules/byterover-rules.md
-.kilocode/rules/byterover-rules.md
-.roo/rules/byterover-rules.md
-.windsurf/rules/byterover-rules.md
-.cursor/rules/byterover-rules.mdc
-.kiro/steering/byterover-rules.md
-.qoder/rules/byterover-rules.md
-.augment/rules/byterover-rules.md
+# 백업 파일
+*.bak
+*.backup
+*.swp
+*.swo
+
+# IDE 및 편집기 파일
+.vscode/
+.idea/
+*.sublime-*
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db
+
+# 로그 및 캐시 파일
+*.log
+*.cache
+tmp/
+temp/
+
+# 빌드 및 생성 파일
+dist/
+build/
+*.min.js
+*.min.css
+
+# Netlify 배포용 함수 (개발 환경에서 무시)
+.netlify/functions/
+

@@ -4,6 +4,10 @@ exports.handler = async (event, context) => {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
+    // 디버깅을 위한 로그 추가
+    console.log('Supabase URL 로드 시도:', supabaseUrl ? `URL 있음 (길이: ${supabaseUrl.length})` : 'URL 없음');
+    console.log('Supabase Anon Key 로드 시도:', supabaseAnonKey ? `Key 있음 (길이: ${supabaseAnonKey.length})` : 'Key 없음');
+
     // 환경변수가 설정되지 않은 경우 에러 반환
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Supabase 환경변수가 설정되지 않았습니다:', {

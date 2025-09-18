@@ -43,6 +43,3 @@
   to = "/index.html"
   status = 200
 
-[context.production.environment]
-  SUPABASE_URL = ""
-  SUPABASE_ANON_KEY = ""
