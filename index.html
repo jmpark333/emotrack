@@ -2020,52 +2020,101 @@
                 return;
             }
 
-            diaries.slice(0, 7).forEach(diary => {
-                const diaryItem = document.createElement('div');
-                diaryItem.className = 'diary-item';
+            // 최근 3개만 표시
+            const visibleDiaries = diaries.slice(0, 3);
+            const hiddenDiaries = diaries.slice(3);
 
-                // 날짜와 삭제 버튼을 위한 컨테이너
-                const headerDiv = document.createElement('div');
-                headerDiv.style.display = 'flex';
-                headerDiv.style.justifyContent = 'space-between';
-                headerDiv.style.alignItems = 'flex-start';
-                headerDiv.style.marginBottom = '8px';
-
-                // 날짜 표시
-                const dateDiv = document.createElement('div');
-                dateDiv.style.fontSize = '0.8rem';
-                dateDiv.style.color = '#666';
-                dateDiv.textContent = `📅 ${diary.date}`;
-
-                // 삭제 버튼
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.title = '일기 삭제';
-                deleteBtn.textContent = '🗑️';
-                deleteBtn.onclick = function() {
-                    deleteDiary(diary.id);
-                };
-
-                headerDiv.appendChild(dateDiv);
-                headerDiv.appendChild(deleteBtn);
-
-                // 내용 추가
-                const contentDiv1 = document.createElement('div');
-                contentDiv1.innerHTML = `<strong>👥 타인:</strong> ${diary.otherPersonAction}`;
-
-                const contentDiv2 = document.createElement('div');
-                contentDiv2.innerHTML = `<strong>👨 나:</strong> ${diary.myReaction}`;
-
-                const contentDiv3 = document.createElement('div');
-                contentDiv3.innerHTML = `<strong>💡 재해석:</strong> <span style="color: var(--success);">${diary.reinterpretation}</span>`;
-
-                diaryItem.appendChild(headerDiv);
-                diaryItem.appendChild(contentDiv1);
-                diaryItem.appendChild(contentDiv2);
-                diaryItem.appendChild(contentDiv3);
-
+            visibleDiaries.forEach(diary => {
+                const diaryItem = createDiaryItem(diary);
                 diaryList.appendChild(diaryItem);
             });
+
+            // 숨겨진 일기들을 위한 컨테이너
+            const hiddenContainer = document.createElement('div');
+            hiddenContainer.id = 'hiddenDiariesContainer';
+            hiddenContainer.style.display = 'none';
+
+            hiddenDiaries.forEach(diary => {
+                const diaryItem = createDiaryItem(diary);
+                hiddenContainer.appendChild(diaryItem);
+            });
+
+            diaryList.appendChild(hiddenContainer);
+
+            // 더보기 버튼 추가 (3개 초과 시에만)
+            if (hiddenDiaries.length > 0) {
+                const moreButton = document.createElement('button');
+                moreButton.className = 'btn';
+                moreButton.id = 'showMoreDiariesBtn';
+                moreButton.textContent = `더보기 (${hiddenDiaries.length}개)`;
+                moreButton.style.width = '100%';
+                moreButton.style.marginTop = '10px';
+                moreButton.onclick = toggleMoreDiaries;
+                diaryList.appendChild(moreButton);
+            }
+        }
+
+        // 일기 아이템 생성 함수
+        function createDiaryItem(diary) {
+            const diaryItem = document.createElement('div');
+            diaryItem.className = 'diary-item';
+
+            // 날짜와 삭제 버튼을 위한 컨테이너
+            const headerDiv = document.createElement('div');
+            headerDiv.style.display = 'flex';
+            headerDiv.style.justifyContent = 'space-between';
+            headerDiv.style.alignItems = 'flex-start';
+            headerDiv.style.marginBottom = '8px';
+
+            // 날짜 표시
+            const dateDiv = document.createElement('div');
+            dateDiv.style.fontSize = '0.8rem';
+            dateDiv.style.color = '#666';
+            dateDiv.textContent = `📅 ${diary.date}`;
+
+            // 삭제 버튼
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.title = '일기 삭제';
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.onclick = function() {
+                deleteDiary(diary.id);
+            };
+
+            headerDiv.appendChild(dateDiv);
+            headerDiv.appendChild(deleteBtn);
+
+            // 내용 추가
+            const contentDiv1 = document.createElement('div');
+            contentDiv1.innerHTML = `<strong>👥 타인:</strong> ${diary.otherPersonAction}`;
+
+            const contentDiv2 = document.createElement('div');
+            contentDiv2.innerHTML = `<strong>👨 나:</strong> ${diary.myReaction}`;
+
+            const contentDiv3 = document.createElement('div');
+            contentDiv3.innerHTML = `<strong>💡 재해석:</strong> <span style="color: var(--success);">${diary.reinterpretation}</span>`;
+
+            diaryItem.appendChild(headerDiv);
+            diaryItem.appendChild(contentDiv1);
+            diaryItem.appendChild(contentDiv2);
+            diaryItem.appendChild(contentDiv3);
+
+            return diaryItem;
+        }
+
+        // 더보기/접기 토글 함수
+        function toggleMoreDiaries() {
+            const hiddenContainer = document.getElementById('hiddenDiariesContainer');
+            const moreButton = document.getElementById('showMoreDiariesBtn');
+            
+            if (hiddenContainer.style.display === 'none') {
+                hiddenContainer.style.display = 'block';
+                moreButton.textContent = '접기';
+            } else {
+                hiddenContainer.style.display = 'none';
+                const hiddenCount = diaries.length - 3;
+                moreButton.textContent = `더보기 (${hiddenCount}개)`;
+            }
         }
 
         // 개별 일기 삭제
