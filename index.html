@@ -711,7 +711,8 @@
             lastAttendanceDate: null,
             attendancePoints: 0,
             breathingPoints: 0,
-            lastBreathingTime: null
+            lastBreathingTime: null,
+            todaysBreathingPoints: 0 // 오늘의 호흡법 포인트 (일일 초기화)
         };
 
         let diaries = []; // 데이터베이스 전용
@@ -952,7 +953,8 @@
                     lastAttendanceDate: data.start_date, // start_date를 lastAttendanceDate로 사용
                     attendancePoints: 0, // attendance_points 컬럼이 없으므로 0으로 초기화
                     breathingPoints: data.breathing_points || 0, // breathing_points 컬럼에서 값 로드
-                    lastBreathingTime: data.last_breathing_time // 호흡법 마지막 실행 시간 로드
+                    lastBreathingTime: data.last_breathing_time, // 호흡법 마지막 실행 시간 로드
+                    todaysBreathingPoints: 0 // 오늘의 호흡법 포인트 초기화 (DB에 저장하지 않음)
                 };
 
                 updateUI();
@@ -1311,13 +1313,18 @@
                     userData.attendancePoints = 0; // attendance_points 컬럼이 없으므로 0으로 초기화
                     userData.breathingPoints = data.breathing_points || 0; // breathing_points 컬럼에서 값 로드
                     userData.lastBreathingTime = data.last_breathing_time; // 호흡법 마지막 실행 시간 로드
+                    userData.todaysBreathingPoints = 0; // 오늘의 호흡법 포인트 초기화 (DB에 저장하지 않음)
+
+                    // 날짜 변경 시 오늘의 호흡법 포인트 초기화
+                    resetDailyBreathingPointsIfNeeded();
 
                     console.log('✅ DB에서 사용자 데이터 로드 완료:', {
                         attendanceCount: userData.attendanceCount,
                         points: userData.points,
                         level: userData.level,
                         totalPoints: userData.totalPoints,
-                        completedToday: userData.completedToday
+                        completedToday: userData.completedToday,
+                        todaysBreathingPoints: userData.todaysBreathingPoints
                     });
 
                 } else {
@@ -1724,29 +1731,22 @@
 
         // 오늘의 호흡법 포인트 계산 함수
         function getTodaysBreathingPoints() {
-            // 호흡법 포인트가 없으면 0 반환
-            if (!userData.breathingPoints || userData.breathingPoints === 0) {
-                return 0;
-            }
+            return userData.todaysBreathingPoints || 0; // 오늘의 호흡법 포인트만 반환
+        }
 
-            // 호흡법 마지막 실행 시간 확인
+        // 날짜 변경 시 오늘의 호흡법 포인트 초기화 함수
+        function resetDailyBreathingPointsIfNeeded() {
             const now = new Date();
-            const lastBreathingTime = userData.lastBreathingTime ? new Date(userData.lastBreathingTime) : null;
+            const lastCheck = userData.lastCheck ? new Date(userData.lastCheck) : null;
 
-            if (!lastBreathingTime) {
-                return 0; // 호흡법 실행 기록이 없음
-            }
+            const isSameDay = lastCheck &&
+                now.getFullYear() === lastCheck.getFullYear() &&
+                now.getMonth() === lastCheck.getMonth() &&
+                now.getDate() === lastCheck.getDate();
 
-            // 오늘 실행된 호흡법인지 확인
-            const isToday =
-                now.getFullYear() === lastBreathingTime.getFullYear() &&
-                now.getMonth() === lastBreathingTime.getMonth() &&
-                now.getDate() === lastBreathingTime.getDate();
-
-            if (isToday) {
-                return userData.breathingPoints; // 오늘 실행된 호흡법 포인트
-            } else {
-                return 0; // 어제 또는 이전에 실행된 호흡법 포인트
+            if (!isSameDay) {
+                // 날짜가 변경된 경우: 오늘의 호흡법 포인트 초기화
+                userData.todaysBreathingPoints = 0;
             }
         }
 
@@ -1935,6 +1935,7 @@
                     userData.points += breathingReward;
                     userData.totalPoints = (userData.totalPoints || 0) + breathingReward;
                     userData.breathingPoints = (userData.breathingPoints || 0) + breathingReward;
+                    userData.todaysBreathingPoints = (userData.todaysBreathingPoints || 0) + breathingReward; // 오늘의 호흡법 포인트 증가
                     userData.lastBreathingTime = new Date().toISOString(); // 호흡법 실행 시간 저장
 
                     alert(`✅ 호흡법 완료! 평온 포인트 ${breathingReward}점 획득!\n이제 조금 더 평온해지셨나요?`);
