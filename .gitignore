@@ -13,6 +13,7 @@
 .vscode/
 .idea/
 *.sublime-*
+CLAUDE.md
 
 # OS 생성 파일
 .DS_Store
@@ -33,5 +34,3 @@ build/
 # Netlify 빌드 캐시만 무시 (함수는 배포되어야 함)
 .netlify/functions/node_modules/
 .netlify/functions/.cache/
-
-CLAUDE.md
