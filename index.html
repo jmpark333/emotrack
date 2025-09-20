@@ -630,7 +630,10 @@
                     <div style="font-size: 1.3rem; font-weight: bold; color: #17a2b8;" id="breathingPointsDisplay">0</div>
                     <div style="font-size: 0.8rem; color: #6c757d;">포인트</div>
                 </div>
-                <div style="text-align: center; min-width: 120px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 10px; border-radius: 8px;">
+                <div style="text-align: center; min-width: 120px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 10px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);"
+                   onclick="showPointHistory()"
+                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 123, 255, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 123, 255, 0.3)'">
                     <div style="font-size: 1.8rem; margin-bottom: 5px;">🏆</div>
                     <div style="font-size: 0.9rem; margin-bottom: 5px;">총 획득 포인트</div>
                     <div style="font-size: 1.5rem; font-weight: bold;" id="totalDailyPoints">0</div>
@@ -639,6 +642,9 @@
             </div>
             <div style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #6c757d;">
                 <span id="dailyBreakdown">체크리스트 0개 완료 (0점) + 긴급호흡법 0회 완료 (0점) = 총 0점</span>
+                <div style="margin-top: 5px; font-style: italic; opacity: 0.7;">
+                    💡 총 획득 포인트를 클릭하면 상세 내역을 볼 수 있습니다
+                </div>
             </div>
         </div>
     </div>
@@ -1367,6 +1373,239 @@
             }
         }
 
+        // 포인트 내역 저장 함수
+        async function savePointHistory(pointType, points, description = '') {
+            if (!currentUser || !supabaseClient) {
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('point_history')
+                    .insert([{
+                        user_id: currentUser.id,
+                        point_type: pointType,
+                        points: points,
+                        description: description
+                    }]);
+
+                if (error) {
+                    console.error('포인트 내역 저장 오류:', error);
+                } else {
+                    console.log(`포인트 내역 저장: ${pointType}, ${points}점`);
+                }
+            } catch (error) {
+                console.error('포인트 내역 저장 오류:', error);
+            }
+        }
+
+        // 포인트 내역 조회 함수
+        async function getPointHistory() {
+            if (!currentUser || !supabaseClient) {
+                return [];
+            }
+
+            try {
+                // 오늘의 시작 시간 (KST)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const { data, error } = await supabaseClient
+                    .from('point_history')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .gte('created_at', today.toISOString())
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('포인트 내역 조회 오류:', error);
+                    return [];
+                }
+
+                return data || [];
+            } catch (error) {
+                console.error('포인트 내역 조회 오류:', error);
+                return [];
+            }
+        }
+
+        // 포인트 내역 팝업 표시 함수
+        async function showPointHistory() {
+            if (!currentUser || !supabaseClient) {
+                alert('로그인이 필요합니다!');
+                return;
+            }
+
+            // 포인트 내역 조회
+            const history = await getPointHistory();
+
+            // 팝업 모달 생성
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 20000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                animation: fadeIn 0.3s ease-out;
+            `;
+
+            // 내용 컨테이너
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 90vw;
+                width: min(600px, 90vw);
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                animation: slideUp 0.3s ease-out;
+            `;
+
+            // 한국어 타입 변환 함수
+            function getKoreanType(type) {
+                const typeMap = {
+                    '출석완료': '출석완료',
+                    '체크리스트 실행': '체크리스트 실행',
+                    '로그인 명상 호흡 완료': '로그인 명상 호흡 완료',
+                    '긴급 호흡 완료': '긴급 호흡 완료',
+                    '레벨업': '레벨업',
+                    '모든 훈련 완료': '모든 훈련 완료'
+                };
+                return typeMap[type] || type;
+            }
+
+            // 시간 포맷 함수
+            function formatTime(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleTimeString('ko-KR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+
+            // 총점 계산
+            const totalPoints = history.reduce((sum, item) => sum + item.points, 0);
+
+            let historyHTML = `
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <h2 style="margin: 0 0 10px 0; color: #333; font-size: 1.5rem;">
+                        📊 오늘의 포인트 내역
+                    </h2>
+                    <div style="color: #666; font-size: 1.1rem;">
+                        총 ${totalPoints}점 획득
+                    </div>
+                </div>
+            `;
+
+            if (history.length === 0) {
+                historyHTML += `
+                    <div style="text-align: center; padding: 40px 20px; color: #999;">
+                        <div style="font-size: 3rem; margin-bottom: 15px;">📝</div>
+                        <div style="font-size: 1.1rem;">아직 획득한 포인트가 없습니다.</div>
+                        <div style="font-size: 0.9rem; margin-top: 5px;">출석이나 훈련을 통해 포인트를 획득해 보세요!</div>
+                    </div>
+                `;
+            } else {
+                historyHTML += `
+                    <div style="border-top: 2px solid #f0f0f0; margin-bottom: 15px;"></div>
+                `;
+
+                history.forEach((item, index) => {
+                    historyHTML += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; color: #333; margin-bottom: 3px;">
+                                    ${getKoreanType(item.point_type)}
+                                </div>
+                                <div style="font-size: 0.85rem; color: #666;">
+                                    ${item.description || ''}
+                                </div>
+                                <div style="font-size: 0.8rem; color: #999;">
+                                    ${formatTime(item.created_at)}
+                                </div>
+                            </div>
+                            <div style="text-align: right; margin-left: 20px;">
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #4CAF50;">
+                                    +${item.points}
+                                </div>
+                                <div style="font-size: 0.8rem; color: #666;">포인트</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            historyHTML += `
+                <div style="text-align: center; margin-top: 25px;">
+                    <button id="closePointHistory" style="
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 25px;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                        transition: all 0.3s ease;
+                    ">
+                        닫기
+                    </button>
+                </div>
+            `;
+
+            content.innerHTML = historyHTML;
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+
+            // 애니메이션 스타일 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from { transform: translateY(50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes fadeOut {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+                @keyframes slideDown {
+                    from { transform: translateY(0); opacity: 1; }
+                    to { transform: translateY(50px); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // 닫기 버튼 이벤트
+            document.getElementById('closePointHistory').addEventListener('click', () => {
+                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+                content.style.animation = 'slideDown 0.3s ease-out forwards';
+                setTimeout(() => {
+                    modal.remove();
+                    style.remove();
+                }, 300);
+            });
+
+            // 배경 클릭 시 닫기
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.getElementById('closePointHistory').click();
+                }
+            });
+        }
+
         // 사용자 데이터 저장 (Supabase)
         async function saveUserDataToSupabase() {
             if (!currentUser || !supabaseClient) {
@@ -1590,6 +1829,9 @@
                     userData.completedToday.push(id);
                     userData.points += 10;
                     userData.totalPoints = (userData.totalPoints || 0) + 10; // 총 누적 포인트 증가
+
+                    // 포인트 내역 저장
+                    savePointHistory('체크리스트 실행', 10, `체크리스트 항목 완료: ${id}`);
                     parent.classList.add('completed');
 
                     // 체크 완료 후 비활성화
@@ -1867,6 +2109,9 @@
 
                 // 데이터베이스에 저장
                 await saveUserDataToSupabase();
+
+                // 포인트 내역 저장
+                await savePointHistory('출석완료', bonus, `${userData.attendanceCount}일차 출석 보너스`);
 
                 // 명언 팝업 먼저 표시 (가장 먼저)
                 showWisdomQuote();
@@ -2380,6 +2625,10 @@
                 // 데이터베이스에 저장
                 await saveUserDataToSupabase();
 
+                // 포인트 내역 저장
+                const breathingType = type === 'wisdom' ? '로그인 명상 호흡 완료' : '긴급 호흡 완료';
+                await savePointHistory(breathingType, breathingBonus, `오늘 ${todayBreathingCount}번째 호흡법`);
+
                 // UI 업데이트
                 updateUI();
                 updateDailyPoints();
@@ -2589,6 +2838,10 @@
 
                     (async () => {
                         await saveUserDataToSupabase();
+
+                        // 포인트 내역 저장
+                        await savePointHistory('긴급 호흡 완료', breathingReward, '긴급 호흡법 완료');
+
                         updateUI();
                         updateDailyPoints();
                         await checkAndHandleLevelUp();
