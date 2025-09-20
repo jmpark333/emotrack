@@ -1320,9 +1320,8 @@
                     userData.attendancePoints = 0; // attendance_points 컬럼이 없으므로 0으로 초기화
                     userData.breathingPoints = data.breathing_points || 0; // breathing_points 컬럼에서 값 로드
                     userData.lastBreathingTime = data.last_breathing_time; // 호흡법 마지막 실행 시간 로드
-
-                    // 날짜 변경 시 오늘의 호흡법 횟수 초기화
-                    resetDailyBreathingCountIfNeeded();
+                    userData.dailyBreathingCount = data.daily_breathing_count || 0; // 일일 호흡법 횟수 로드
+                    userData.lastBreathingDate = data.last_breathing_date; // 마지막 호흡법 날짜 로드
 
                     console.log('✅ DB에서 사용자 데이터 로드 완료:', {
                         attendanceCount: userData.attendanceCount,
@@ -1356,23 +1355,7 @@
             console.groupEnd();
         }
 
-        // 일일 호흡법 횟수 초기화 함수
-        function resetDailyBreathingCountIfNeeded() {
-            if (!userData.lastBreathingDate) {
-                userData.dailyBreathingCount = 0;
-                return;
-            }
-
-            const today = new Date().toDateString();
-            const lastBreathingDate = new Date(userData.lastBreathingDate).toDateString();
-
-            if (today !== lastBreathingDate) {
-                // 날짜가 바뀌었으면 일일 호흡법 횟수 초기화
-                userData.dailyBreathingCount = 0;
-                console.log('🔄 날짜 변경: 일일 호흡법 횟수 초기화');
-            }
-        }
-
+    
         // loadUserData의 별칭 함수 (호환성 유지)
         async function loadUserDataFromSupabase() {
             return await loadUserData();
@@ -1695,6 +1678,8 @@
                         start_date: userData.lastAttendanceDate, // lastAttendanceDate를 start_date에 저장
                         breathing_points: userData.breathingPoints || 0, // 호흡법 포인트 저장
                         last_breathing_time: userData.lastBreathingTime, // 호흡법 마지막 실행 시간 저장
+                        daily_breathing_count: userData.dailyBreathingCount || 0, // 일일 호흡법 횟수 저장
+                        last_breathing_date: userData.lastBreathingDate, // 마지막 호흡법 날짜 저장
                         updated_at: new Date().toISOString()
                     }, {
                         onConflict: 'user_id'
