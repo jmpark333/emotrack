@@ -886,6 +886,9 @@
                 document.getElementById('loginSection').style.display = 'none';
                 closeAuthModal();
 
+                // 로그인 명언 팝업 표시
+                showLoginWisdomQuote();
+
                 // 데이터 로드 (동기적으로 처리 - 실패 시 로그아웃)
                 try {
                     await loadUserData();
@@ -1523,10 +1526,16 @@
                 userData.level++;
                 leveledUp = true;
                 console.log('🎉 레벨업! 새로운 레벨:', userData.level);
-                alert(`🎉 축하합니다! 평온 레벨 ${userData.level}에 도달했습니다!`);
-                
-                // 동기부여 메시지 표시
-                showMotivationalMessage('levelUp');
+
+                // 레벨업 메시지를 setTimeout으로 표시하여 명언 팝업과 겹치지 않도록 함
+                setTimeout(() => {
+                    alert(`🎉 축하합니다! 평온 레벨 ${userData.level}에 도달했습니다!`);
+                }, 1000);
+
+                // 동기부여 메시지도 약간의 딜레이를 주고 표시
+                setTimeout(() => {
+                    showMotivationalMessage('levelUp');
+                }, 3000);
             }
 
             if (leveledUp) {
@@ -1825,42 +1834,73 @@
             const today = new Date().toISOString();
             const bonus = calculateAttendanceBonus();
 
-            // 출석 일수 증가 및 데이터 업데이트
-            userData.attendanceCount = (userData.attendanceCount || 0) + 1;
-            userData.lastAttendanceDate = today;
-            userData.attendancePoints = (userData.attendancePoints || 0) + bonus;
-            userData.points += bonus;
-            userData.totalPoints = (userData.totalPoints || 0) + bonus;
+            // 데이터 변경 전 원본 값 저장 (롤백용)
+            const originalAttendanceCount = userData.attendanceCount || 0;
+            const originalPoints = userData.points || 0;
+            const originalTotalPoints = userData.totalPoints || 0;
+            const originalAttendancePoints = userData.attendancePoints || 0;
 
             try {
+                // 데이터베이스 저장 전에 데이터 업데이트
+                userData.attendanceCount = originalAttendanceCount + 1;
+                userData.lastAttendanceDate = today;
+                userData.attendancePoints = originalAttendancePoints + bonus;
+                userData.points = originalPoints + bonus;
+                userData.totalPoints = originalTotalPoints + bonus;
+
                 // 데이터베이스에 저장
                 await saveUserDataToSupabase();
 
-                // UI 업데이트
-                updateUI();
-                updateAttendanceDisplay();
-                updateDailyPoints();
+                // 명언 팝업 먼저 표시 (가장 먼저)
+                showWisdomQuote();
 
-                // 레벨업 체크
-                await checkAndHandleLevelUp();
-
-                // 성공 메시지
-                alert(`✅ 출석 완료!
+                // 잠시 후 성공 메시지 표시 (명언 팝업이 사라진 후)
+                setTimeout(() => {
+                    alert(`✅ 출석 완료!
 출석 일수: ${userData.attendanceCount}일
 획득 포인트: ${bonus}점`);
-                
-                // 동기부여 메시지 표시
-                showMotivationalMessage('attendance');
+                }, 5600); // 명언 팝업 표시 시간(5초) + 애니메이션 시간(0.6초) 고려
+
+                // 동기부여 메시지 표시 (더 늦게 표시)
+                setTimeout(() => {
+                    showMotivationalMessage('attendance');
+                }, 8000); // 성공 메시지 후 약간의 딜레이
+
+                // UI 업데이트 (별도 try-catch로 처리)
+                try {
+                    updateUI();
+                    updateAttendanceDisplay();
+                    updateDailyPoints();
+
+                    // 레벨업 체크
+                    await checkAndHandleLevelUp();
+                } catch (uiError) {
+                    console.error('UI 업데이트 오류:', uiError);
+                    // UI 업데이트 실패해도 출석 자체는 성공했으므로 사용자에게 알림
+                    console.log('출석은 완료되었으나 UI 업데이트에 실패했습니다.');
+                }
 
             } catch (error) {
                 console.error('출석 처리 중 오류:', error);
-                alert('출석 처리에 실패했습니다. 다시 시도해주세요.');
 
-                // 오류 시 데이터 롤백
-                userData.attendanceCount -= 1;
-                userData.points -= bonus;
-                userData.totalPoints -= bonus;
-                userData.attendancePoints -= bonus;
+                // 데이터 롤백
+                userData.attendanceCount = originalAttendanceCount;
+                userData.points = originalPoints;
+                userData.totalPoints = originalTotalPoints;
+                userData.attendancePoints = originalAttendancePoints;
+
+                // 더 구체적인 에러 메시지 제공
+                let errorMessage = '출석 처리에 실패했습니다. 다시 시도해주세요.';
+
+                if (error.message && error.message.includes('timeout')) {
+                    errorMessage = '서버 연결이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+                } else if (error.message && error.message.includes('network')) {
+                    errorMessage = '네트워크 연결을 확인해주세요.';
+                } else if (error.code === 'PGRST116') {
+                    errorMessage = '데이터 저장 중 문제가 발생했습니다. 관리자에게 문의해주세요.';
+                }
+
+                alert(errorMessage);
             }
         }
 
@@ -1945,6 +1985,144 @@
             }
         }
 
+        // 명언 배열
+        const wisdomQuotes = [
+            "마음의 평온은 내면에서 온다. 밖에서 찾지 말라.",
+            "과거에 머무르지 말고, 미래를 꿈꾸지도 말라. 현재에 마음을 집중하라.",
+            "우리는 우리가 생각하는 바가 된다.",
+            "행복에 이르는 길은 없다. 행복 그 자체가 길이다.",
+            "진정한 행복은 밖에 있는 것이 아니라, 내면에 있다.",
+            "자신을 정복하는 것이 천 번의 전투에서 이기는 것보다 더 큰 과업이다.",
+            "미움은 미움으로 없어지지 않는다. 오직 사랑으로만 사라진다. 이것이 영원한 법칙이다.",
+            "마음의 평정은 타인을 바꾸려 하지 않는 데서 온다.",
+            "당신 자신이 가장 큰 스승이다.",
+            "고요한 마음은 지혜의 근원이다.",
+            "너를 화나게 할 수 있는 사람은 누구든 너의 주인이 된다.",
+            "스스로의 주인이 되지 않는 자는 자유롭지 못하다.",
+            "우리에게 일어나는 일이 중요한 것이 아니라, 그것에 반응하는 방식이 중요하다.",
+            "고통은 당신의 생각이 만들어낸 것이다.",
+            "현명한 사람은 자기 자신으로 만족한다.",
+            "중요한 것은 무엇을 견디느냐가 아니라, 어떻게 견디느냐다.",
+            "때로는 사는 것 자체가 용기의 행위다.",
+            "우리는 현실에서보다 상상에서 더 자주 고통받는다.",
+            "인생은 길다, 당신이 어떻게 쓰느냐를 안다면.",
+            "당신을 괴롭히는 것들에서 도망치고 싶다면, 다른 장소에 가는 것이 아니라 다른 사람이 되어야 한다."
+        ];
+
+        // 명언 팝업 표시 함수
+        function showWisdomQuote() {
+            const randomQuote = wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
+
+            // 명언 팝업 모달 생성
+            const wisdomModal = document.createElement('div');
+            wisdomModal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 25px;
+                border-radius: 15px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+                z-index: 10000;
+                text-align: center;
+                font-size: 1.2rem;
+                max-width: 350px;
+                line-height: 1.5;
+                animation: wisdomSlideIn 0.6s ease-out;
+            `;
+
+            // 애니메이션 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes wisdomSlideIn {
+                    0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+                    60% { transform: translate(-50%, -50%) scale(1.05); }
+                    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                }
+                @keyframes wisdomSlideOut {
+                    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                    100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            wisdomModal.innerHTML = `
+                <div style="margin-bottom: 15px; font-size: 1.4rem;">📜 오늘의 지혜</div>
+                <div style="font-style: italic; margin-bottom: 15px;">"${randomQuote}"</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">이 명언이 당신의 하루를 밝혀주길</div>
+            `;
+            document.body.appendChild(wisdomModal);
+
+            // 5초 후 자동으로 제거
+            setTimeout(() => {
+                wisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
+                setTimeout(() => {
+                    wisdomModal.remove();
+                    style.remove();
+                }, 500);
+            }, 5000);
+        }
+
+        // 로그인 명언 팝업 표시 함수
+        function showLoginWisdomQuote() {
+            const randomQuote = wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
+
+            // 로그인 명언 팝업 모달 생성
+            const loginWisdomModal = document.createElement('div');
+            loginWisdomModal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 25px;
+                border-radius: 15px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+                z-index: 10000;
+                text-align: center;
+                font-size: 1.2rem;
+                max-width: 350px;
+                line-height: 1.5;
+                animation: wisdomSlideIn 0.6s ease-out;
+            `;
+
+            // 애니메이션 추가 (이미 있다면 재사용)
+            if (!document.querySelector('style[data-wisdom-animations]')) {
+                const style = document.createElement('style');
+                style.setAttribute('data-wisdom-animations', 'true');
+                style.textContent = `
+                    @keyframes wisdomSlideIn {
+                        0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+                        60% { transform: translate(-50%, -50%) scale(1.05); }
+                        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                    }
+                    @keyframes wisdomSlideOut {
+                        0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                        100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            loginWisdomModal.innerHTML = `
+                <div style="margin-bottom: 15px; font-size: 1.4rem;">🌟 환영합니다!</div>
+                <div style="font-style: italic; margin-bottom: 15px;">"${randomQuote}"</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">평온한 하루의 시작을 응원합니다</div>
+            `;
+            document.body.appendChild(loginWisdomModal);
+
+            // 5초 후 자동으로 제거
+            setTimeout(() => {
+                loginWisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
+                setTimeout(() => {
+                    loginWisdomModal.remove();
+                }, 500);
+            }, 5000);
+        }
+
         // 동기부여 메시지 표시 함수
         function showMotivationalMessage(type) {
             const messages = {
@@ -2001,7 +2179,7 @@
                     padding: 20px;
                     border-radius: 15px;
                     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    z-index: 10000;
+                    z-index: 9999; // 명언 팝업(10000)보다 낮게 설정
                     text-align: center;
                     font-size: 1.1rem;
                     max-width: 300px;
@@ -2536,6 +2714,10 @@
 
                         console.log('✅ UI 업데이트 시작...');
                         updateUI();
+
+                        // 자동 로그인 시에도 명언 팝업 표시
+                        showLoginWisdomQuote();
+
                         console.log('✅ 세션 확인 및 데이터 자동 로드 완료:', session.user.email);
 
                     } catch (error) {
