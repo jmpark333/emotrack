@@ -2115,7 +2115,8 @@
                 z-index: 10000;
                 text-align: center;
                 font-size: 1.2rem;
-                max-width: 420px;
+                max-width: 90vw;
+                width: min(520px, 90vw);
                 line-height: 1.5;
                 animation: wisdomSlideIn 0.6s ease-out;
             `;
@@ -2184,7 +2185,8 @@
                 z-index: 10000;
                 text-align: center;
                 font-size: 1.2rem;
-                max-width: 420px;
+                max-width: 90vw;
+                width: min(520px, 90vw);
                 line-height: 1.5;
                 animation: wisdomSlideIn 0.6s ease-out;
             `;
@@ -2312,6 +2314,9 @@
             if (!currentUser) {
                 return;
             }
+
+            // 데이터베이스에서 최신 사용자 정보 다시 로드
+            await loadUserDataFromSupabase();
 
             const today = new Date().toDateString();
             const lastBreathingDate = userData.lastBreathingDate ? new Date(userData.lastBreathingDate).toDateString() : null;
