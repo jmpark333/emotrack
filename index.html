@@ -1859,12 +1859,12 @@
                     alert(`✅ 출석 완료!
 출석 일수: ${userData.attendanceCount}일
 획득 포인트: ${bonus}점`);
-                }, 5600); // 명언 팝업 표시 시간(5초) + 애니메이션 시간(0.6초) 고려
+                }, 20000); // 호흡법 포함 명언 팝업 시간(19초) + 애니메이션 시간(1초) 고려
 
                 // 동기부여 메시지 표시 (더 늦게 표시)
                 setTimeout(() => {
                     showMotivationalMessage('attendance');
-                }, 8000); // 성공 메시지 후 약간의 딜레이
+                }, 23000); // 성공 메시지 후 약간의 딜레이
 
                 // UI 업데이트 (별도 try-catch로 처리)
                 try {
@@ -2009,6 +2009,70 @@
             "당신을 괴롭히는 것들에서 도망치고 싶다면, 다른 장소에 가는 것이 아니라 다른 사람이 되어야 한다."
         ];
 
+        // 명언 팝업용 호흡법 타이머 함수
+        function startWisdomBreathing() {
+            const phases = [
+                { name: '준비', duration: 3, color: '#87CEEB' },
+                { name: '들이마시기', duration: 4, color: '#4169E1' },
+                { name: '참기', duration: 7, color: '#FFD700' },
+                { name: '내쉬기', duration: 8, color: '#32CD32' }
+            ];
+
+            let currentPhase = 0;
+            let countdownInterval;
+            let progressInterval;
+
+            function startPhase(phaseIndex) {
+                const phase = phases[phaseIndex];
+                const phaseElement = document.getElementById('breathingPhase');
+                const countdownElement = document.getElementById('breathingCountdown');
+                const progressElement = document.getElementById('breathingProgressBar');
+
+                if (!phaseElement || !countdownElement || !progressElement) return;
+
+                // 현재 단계 설정
+                phaseElement.textContent = phase.name;
+                countdownElement.style.color = phase.color;
+                countdownElement.textContent = phase.duration;
+
+                // 프로그레스 바 초기화
+                progressElement.style.width = '0%';
+                progressElement.style.background = phase.color;
+
+                let timeLeft = phase.duration;
+                const totalDuration = phase.duration;
+
+                // 카운트다운 타이머
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    countdownElement.textContent = timeLeft;
+
+                    // 프로그레스 바 업데이트
+                    const progress = ((totalDuration - timeLeft) / totalDuration) * 100;
+                    progressElement.style.width = progress + '%';
+
+                    if (timeLeft <= 0) {
+                        clearInterval(countdownInterval);
+                        currentPhase++;
+
+                        if (currentPhase < phases.length) {
+                            // 다음 단계 시작
+                            setTimeout(() => startPhase(currentPhase), 500);
+                        } else {
+                            // 모든 단계 완료
+                            phaseElement.textContent = '완료!';
+                            countdownElement.textContent = '✅';
+                            progressElement.style.width = '100%';
+                            progressElement.style.background = '#32CD32';
+                        }
+                    }
+                }, 1000);
+            }
+
+            // 첫 단계 시작
+            startPhase(0);
+        }
+
         // 명언 팝업 표시 함수
         function showWisdomQuote() {
             const randomQuote = wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
@@ -2050,19 +2114,32 @@
 
             wisdomModal.innerHTML = `
                 <div style="margin-bottom: 15px; font-size: 1.4rem;">📜 오늘의 지혜</div>
-                <div style="font-style: italic; margin-bottom: 15px;">"${randomQuote}"</div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">이 명언이 당신의 하루를 밝혀주길</div>
+                <div style="font-style: italic; margin-bottom: 15px; line-height: 1.6;">"${randomQuote}"</div>
+                <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 20px;">이 명언이 당신의 하루를 밝혀주길</div>
+
+                <!-- 호흡법 타이머 영역 -->
+                <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-top: 10px;">
+                    <div style="font-size: 1.1rem; margin-bottom: 10px;">🌬️ 긴급 호흡법</div>
+                    <div id="breathingPhase" style="font-size: 1rem; margin-bottom: 8px; font-weight: bold;">준비 중...</div>
+                    <div id="breathingCountdown" style="font-size: 2rem; font-weight: bold; color: #FFD700;">3</div>
+                    <div id="breathingProgress" style="width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin-top: 8px; overflow: hidden;">
+                        <div id="breathingProgressBar" style="width: 0%; height: 100%; background: #FFD700; transition: width 0.1s linear;"></div>
+                    </div>
+                </div>
             `;
             document.body.appendChild(wisdomModal);
 
-            // 5초 후 자동으로 제거
+            // 호흡법 시작
+            startWisdomBreathing();
+
+            // 19초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초, 여유 있게 19초로 설정)
             setTimeout(() => {
                 wisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
                 setTimeout(() => {
                     wisdomModal.remove();
                     style.remove();
                 }, 500);
-            }, 5000);
+            }, 19000);
         }
 
         // 로그인 명언 팝업 표시 함수
@@ -2109,18 +2186,94 @@
 
             loginWisdomModal.innerHTML = `
                 <div style="margin-bottom: 15px; font-size: 1.4rem;">🌟 환영합니다!</div>
-                <div style="font-style: italic; margin-bottom: 15px;">"${randomQuote}"</div>
-                <div style="font-size: 0.9rem; opacity: 0.9;">평온한 하루의 시작을 응원합니다</div>
+                <div style="font-style: italic; margin-bottom: 15px; line-height: 1.6;">"${randomQuote}"</div>
+                <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 20px;">평온한 하루의 시작을 응원합니다</div>
+
+                <!-- 호흡법 타이머 영역 -->
+                <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-top: 10px;">
+                    <div style="font-size: 1.1rem; margin-bottom: 10px;">🌬️ 긴급 호흡법</div>
+                    <div id="loginBreathingPhase" style="font-size: 1rem; margin-bottom: 8px; font-weight: bold;">준비 중...</div>
+                    <div id="loginBreathingCountdown" style="font-size: 2rem; font-weight: bold; color: #FFD700;">3</div>
+                    <div id="loginBreathingProgress" style="width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin-top: 8px; overflow: hidden;">
+                        <div id="loginBreathingProgressBar" style="width: 0%; height: 100%; background: #FFD700; transition: width 0.1s linear;"></div>
+                    </div>
+                </div>
             `;
             document.body.appendChild(loginWisdomModal);
 
-            // 5초 후 자동으로 제거
+            // 로그인용 호흡법 시작
+            startLoginBreathing();
+
+            // 19초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초, 여유 있게 19초로 설정)
             setTimeout(() => {
                 loginWisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
                 setTimeout(() => {
                     loginWisdomModal.remove();
                 }, 500);
-            }, 5000);
+            }, 19000);
+        }
+
+        // 로그인 명언 팝업용 호흡법 타이머 함수
+        function startLoginBreathing() {
+            const phases = [
+                { name: '준비', duration: 3, color: '#87CEEB' },
+                { name: '들이마시기', duration: 4, color: '#4169E1' },
+                { name: '참기', duration: 7, color: '#FFD700' },
+                { name: '내쉬기', duration: 8, color: '#32CD32' }
+            ];
+
+            let currentPhase = 0;
+            let countdownInterval;
+
+            function startPhase(phaseIndex) {
+                const phase = phases[phaseIndex];
+                const phaseElement = document.getElementById('loginBreathingPhase');
+                const countdownElement = document.getElementById('loginBreathingCountdown');
+                const progressElement = document.getElementById('loginBreathingProgressBar');
+
+                if (!phaseElement || !countdownElement || !progressElement) return;
+
+                // 현재 단계 설정
+                phaseElement.textContent = phase.name;
+                countdownElement.style.color = phase.color;
+                countdownElement.textContent = phase.duration;
+
+                // 프로그레스 바 초기화
+                progressElement.style.width = '0%';
+                progressElement.style.background = phase.color;
+
+                let timeLeft = phase.duration;
+                const totalDuration = phase.duration;
+
+                // 카운트다운 타이머
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    countdownElement.textContent = timeLeft;
+
+                    // 프로그레스 바 업데이트
+                    const progress = ((totalDuration - timeLeft) / totalDuration) * 100;
+                    progressElement.style.width = progress + '%';
+
+                    if (timeLeft <= 0) {
+                        clearInterval(countdownInterval);
+                        currentPhase++;
+
+                        if (currentPhase < phases.length) {
+                            // 다음 단계 시작
+                            setTimeout(() => startPhase(currentPhase), 500);
+                        } else {
+                            // 모든 단계 완료
+                            phaseElement.textContent = '완료!';
+                            countdownElement.textContent = '✅';
+                            progressElement.style.width = '100%';
+                            progressElement.style.background = '#32CD32';
+                        }
+                    }
+                }, 1000);
+            }
+
+            // 첫 단계 시작
+            startPhase(0);
         }
 
         // 동기부여 메시지 표시 함수
