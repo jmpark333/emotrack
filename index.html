@@ -1373,13 +1373,28 @@
             }
         }
 
+        // loadUserData의 별칭 함수 (호환성 유지)
+        async function loadUserDataFromSupabase() {
+            return await loadUserData();
+        }
+
         // 포인트 내역 저장 함수
         async function savePointHistory(pointType, points, description = '') {
+            console.log('🎯 포인트 내역 저장 시작:', {
+                pointType,
+                points,
+                description,
+                currentUser: !!currentUser,
+                supabaseClient: !!supabaseClient
+            });
+
             if (!currentUser || !supabaseClient) {
+                console.log('❌ 포인트 내역 저장 중단: 로그인 또는 Supabase 미연결');
                 return;
             }
 
             try {
+                console.log('📤 point_history 테이블에 데이터 삽입 시도...');
                 const { data, error } = await supabaseClient
                     .from('point_history')
                     .insert([{
@@ -1390,18 +1405,31 @@
                     }]);
 
                 if (error) {
-                    console.error('포인트 내역 저장 오류:', error);
+                    console.error('❌ 포인트 내역 저장 오류:', error);
+                    console.error('오류 상세:', {
+                        message: error.message,
+                        code: error.code,
+                        details: error.details,
+                        hint: error.hint
+                    });
                 } else {
-                    console.log(`포인트 내역 저장: ${pointType}, ${points}점`);
+                    console.log(`✅ 포인트 내역 저장 성공: ${pointType}, ${points}점`);
+                    console.log('저장된 데이터:', data);
                 }
             } catch (error) {
-                console.error('포인트 내역 저장 오류:', error);
+                console.error('❌ 포인트 내역 저장 예외 오류:', error);
             }
         }
 
         // 포인트 내역 조회 함수
         async function getPointHistory() {
+            console.log('🔍 포인트 내역 조회 시작:', {
+                currentUser: !!currentUser,
+                supabaseClient: !!supabaseClient
+            });
+
             if (!currentUser || !supabaseClient) {
+                console.log('❌ 포인트 내역 조회 중단: 로그인 또는 Supabase 미연결');
                 return [];
             }
 
@@ -1409,22 +1437,41 @@
                 // 오늘의 시작 시간 (KST)
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+                const todayString = today.toISOString();
 
+                console.log('📅 조회 조건:', {
+                    userId: currentUser.id,
+                    todayStart: todayString,
+                    todayKST: today.toLocaleString('ko-KR')
+                });
+
+                console.log('📤 point_history 테이블 조회 쿼리 실행...');
                 const { data, error } = await supabaseClient
                     .from('point_history')
                     .select('*')
                     .eq('user_id', currentUser.id)
-                    .gte('created_at', today.toISOString())
+                    .gte('created_at', todayString)
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.error('포인트 내역 조회 오류:', error);
+                    console.error('❌ 포인트 내역 조회 오류:', error);
+                    console.error('오류 상세:', {
+                        message: error.message,
+                        code: error.code,
+                        details: error.details,
+                        hint: error.hint
+                    });
                     return [];
+                }
+
+                console.log(`✅ 포인트 내역 조회 성공: ${data?.length || 0}개 항목`);
+                if (data && data.length > 0) {
+                    console.log('조회된 내역:', data);
                 }
 
                 return data || [];
             } catch (error) {
-                console.error('포인트 내역 조회 오류:', error);
+                console.error('❌ 포인트 내역 조회 예외 오류:', error);
                 return [];
             }
         }
