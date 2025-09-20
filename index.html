@@ -2655,7 +2655,8 @@
 
                 // 포인트 내역 저장
                 const breathingType = type === 'wisdom' ? '로그인 명상 호흡 완료' : '명상 호흡 완료';
-                await savePointHistory(breathingType, breathingBonus, `오늘 ${todayBreathingCount}번째 호흡법`);
+                const breathingDescription = type === 'wisdom' ? '로그인 명상 호흡법' : '명상 호흡법';
+                await savePointHistory(breathingType, breathingBonus, `${breathingDescription} 완료`);
 
                 // UI 업데이트
                 updateUI();
