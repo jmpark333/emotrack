@@ -1404,6 +1404,38 @@
             }
         }
 
+        // 오늘의 호흡법 횟수 조회 함수
+        async function getTodayBreathingCount() {
+            if (!currentUser || !supabaseClient) {
+                return 0;
+            }
+
+            try {
+                // 오늘의 시작 시간 (KST)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayString = today.toISOString();
+
+                // 오늘의 호흡법 관련 포인트 내역만 조회
+                const { data, error } = await supabaseClient
+                    .from('point_history')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .gte('created_at', todayString)
+                    .in('point_type', ['로그인 명상 호흡 완료', '명상 호흡 완료']);
+
+                if (error) {
+                    console.error('오늘의 호흡법 횟수 조회 오류:', error);
+                    return 0;
+                }
+
+                return data?.length || 0;
+            } catch (error) {
+                console.error('오늘의 호흡법 횟수 조회 예외 오류:', error);
+                return 0;
+            }
+        }
+
         // 포인트 내역 조회 함수
         async function getPointHistory() {
             console.log('🔍 포인트 내역 조회 시작:', {
@@ -2596,14 +2628,9 @@
             const lastBreathingDate = userData.lastBreathingDate ? new Date(userData.lastBreathingDate).toDateString() : null;
 
             try {
-                // 오늘의 호흡법 횟수 계산 (메모리에서 먼저 계산)
-                let todayBreathingCount = 0;
-                if (today === lastBreathingDate) {
-                    todayBreathingCount = (userData.dailyBreathingCount || 0) + 1; // 이미 로드된 값에서 +1
-                } else {
-                    // 날짜가 바뀌면 1로 시작
-                    todayBreathingCount = 1;
-                }
+                // 데이터베이스에서 오늘의 실제 호흡법 횟수 조회
+                const currentCount = await getTodayBreathingCount();
+                const todayBreathingCount = currentCount + 1; // 이번 호흡법 포함
 
                 userData.dailyBreathingCount = todayBreathingCount;
                 userData.lastBreathingDate = new Date().toISOString();
