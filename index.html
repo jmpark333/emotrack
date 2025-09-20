@@ -1315,8 +1315,8 @@
                     userData.breathingPoints = data.breathing_points || 0; // breathing_points 컬럼에서 값 로드
                     userData.lastBreathingTime = data.last_breathing_time; // 호흡법 마지막 실행 시간 로드
 
-                    // 날짜 변경 시 오늘의 호흡법 포인트 초기화
-                    resetDailyBreathingPointsIfNeeded();
+                    // 날짜 변경 시 오늘의 호흡법 횟수 초기화
+                    resetDailyBreathingCountIfNeeded();
 
                     console.log('✅ DB에서 사용자 데이터 로드 완료:', {
                         attendanceCount: userData.attendanceCount,
@@ -1348,6 +1348,23 @@
             // 오늘 획득 포인트 UI 업데이트
             updateDailyPoints();
             console.groupEnd();
+        }
+
+        // 일일 호흡법 횟수 초기화 함수
+        function resetDailyBreathingCountIfNeeded() {
+            if (!userData.lastBreathingDate) {
+                userData.dailyBreathingCount = 0;
+                return;
+            }
+
+            const today = new Date().toDateString();
+            const lastBreathingDate = new Date(userData.lastBreathingDate).toDateString();
+
+            if (today !== lastBreathingDate) {
+                // 날짜가 바뀌었으면 일일 호흡법 횟수 초기화
+                userData.dailyBreathingCount = 0;
+                console.log('🔄 날짜 변경: 일일 호흡법 횟수 초기화');
+            }
         }
 
         // 사용자 데이터 저장 (Supabase)
@@ -2020,7 +2037,7 @@
 
             let currentPhase = 0;
             let countdownInterval;
-            let progressInterval;
+            let isBreathingCompleted = false;
 
             function startPhase(phaseIndex) {
                 const phase = phases[phaseIndex];
@@ -2064,6 +2081,12 @@
                             countdownElement.textContent = '✅';
                             progressElement.style.width = '100%';
                             progressElement.style.background = '#32CD32';
+
+                            // 호흡법 완료 처리
+                            if (!isBreathingCompleted) {
+                                isBreathingCompleted = true;
+                                handleBreathingComplete('wisdom');
+                            }
                         }
                     }
                 }, 1000);
@@ -2092,7 +2115,7 @@
                 z-index: 10000;
                 text-align: center;
                 font-size: 1.2rem;
-                max-width: 380px;
+                max-width: 420px;
                 line-height: 1.5;
                 animation: wisdomSlideIn 0.6s ease-out;
             `;
@@ -2161,7 +2184,7 @@
                 z-index: 10000;
                 text-align: center;
                 font-size: 1.2rem;
-                max-width: 380px;
+                max-width: 420px;
                 line-height: 1.5;
                 animation: wisdomSlideIn 0.6s ease-out;
             `;
@@ -2224,6 +2247,7 @@
 
             let currentPhase = 0;
             let countdownInterval;
+            let isBreathingCompleted = false;
 
             function startPhase(phaseIndex) {
                 const phase = phases[phaseIndex];
@@ -2267,6 +2291,12 @@
                             countdownElement.textContent = '✅';
                             progressElement.style.width = '100%';
                             progressElement.style.background = '#32CD32';
+
+                            // 호흡법 완료 처리
+                            if (!isBreathingCompleted) {
+                                isBreathingCompleted = true;
+                                handleBreathingComplete('login');
+                            }
                         }
                     }
                 }, 1000);
@@ -2274,6 +2304,146 @@
 
             // 첫 단계 시작
             startPhase(0);
+        }
+
+        // 호흡법 완료 처리 함수
+        async function handleBreathingComplete(type) {
+            // 비로그인 상태이면 패스
+            if (!currentUser) {
+                return;
+            }
+
+            const today = new Date().toDateString();
+            const lastBreathingDate = userData.lastBreathingDate ? new Date(userData.lastBreathingDate).toDateString() : null;
+
+            try {
+                // 오늘의 호흡법 횟수 계산
+                let todayBreathingCount = 0;
+                if (today === lastBreathingDate) {
+                    todayBreathingCount = userData.dailyBreathingCount || 0;
+                } else {
+                    // 날짜가 바뀌면 초기화
+                    todayBreathingCount = 0;
+                }
+
+                todayBreathingCount++;
+                userData.dailyBreathingCount = todayBreathingCount;
+                userData.lastBreathingDate = new Date().toISOString();
+
+                // 횟수별 포인트 및 메시지 계산
+                let breathingBonus = 0;
+                let motivationMessage = '';
+
+                if (type === 'wisdom') {
+                    // 명언 팝업 호흡법 (출석 시): 항상 5점
+                    breathingBonus = 5;
+
+                    if (todayBreathingCount === 1) {
+                        motivationMessage = '🌟 첫 명상 호흡법! 마음이 차분해지고 있어요.';
+                    } else if (todayBreathingCount === 3) {
+                        motivationMessage = '🔥 오늘 3번째 호흡법! 꾸준함이 대단해요!';
+                    } else if (todayBreathingCount === 5) {
+                        motivationMessage = '🏆 오늘 5번째 호흡법! 명상의 달인이 되었어요!';
+                    } else if (todayBreathingCount === 10) {
+                        motivationMessage = '💎 오늘 10번째 호흡법! 당신의 정신력은 초인적이에요!';
+                    } else {
+                        const messages = [
+                            '🌬️ 호흡법 완료! 마음이 한결 차분해졌어요.',
+                            '🧘 호흡법 성공! 내면의 평화를 찾고 있어요.',
+                            '✨ 호흡법 완료! 꾸준한 연습이 빛을 발하고 있어요.'
+                        ];
+                        motivationMessage = messages[Math.floor(Math.random() * messages.length)];
+                    }
+                } else {
+                    // 로그인 호흡법: 항상 3점
+                    breathingBonus = 3;
+
+                    if (todayBreathingCount === 1) {
+                        motivationMessage = '🌟 오늘의 첫 호흡법! 좋은 시작이에요.';
+                    } else if (todayBreathingCount === 3) {
+                        motivationMessage = '🔥 오늘 3번째 호흡법! 멋진 습관이군요!';
+                    } else {
+                        motivationMessage = '🌬️ 호흡법 완료! 꾸준함이 자랑스러워요.';
+                    }
+                }
+
+                // 포인트 증가
+                userData.breathingPoints = (userData.breathingPoints || 0) + breathingBonus;
+                userData.points += breathingBonus;
+                userData.totalPoints = (userData.totalPoints || 0) + breathingBonus;
+
+                // 데이터베이스에 저장
+                await saveUserDataToSupabase();
+
+                // UI 업데이트
+                updateUI();
+                updateDailyPoints();
+
+                // 동기부여 메시지 표시
+                if (motivationMessage) {
+                    setTimeout(() => {
+                        showBreathingMotivation(motivationMessage, breathingBonus, todayBreathingCount);
+                    }, 500);
+                }
+
+                console.log(`호흡법 완료! ${breathingBonus}점 획득 (오늘 ${todayBreathingCount}번째)`);
+
+            } catch (error) {
+                console.error('호흡법 포인트 저장 오류:', error);
+            }
+        }
+
+        // 호흡법 동기부여 메시지 표시 함수
+        function showBreathingMotivation(message, points, count) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 60%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 20px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                z-index: 10001; // 명언 팝업보다 위에 표시
+                text-align: center;
+                font-size: 1rem;
+                max-width: 300px;
+                animation: breathingMotivationPop 0.5s ease-out;
+            `;
+
+            // 애니메이션 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes breathingMotivationPop {
+                    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                }
+                @keyframes breathingMotivationSlideOut {
+                    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                    100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            modal.innerHTML = `
+                <div style="font-size: 1.2rem; margin-bottom: 10px;">🌬️ 호흡법 완료!</div>
+                <div style="margin-bottom: 8px;">${message}</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">
+                    ${points}점 획득 (오늘 ${count}번째)
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // 3초 후 자동으로 제거
+            setTimeout(() => {
+                modal.style.animation = 'breathingMotivationSlideOut 0.3s ease-in forwards';
+                setTimeout(() => {
+                    modal.remove();
+                    style.remove();
+                }, 300);
+            }, 3000);
         }
 
         // 동기부여 메시지 표시 함수
