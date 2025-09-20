@@ -590,7 +590,7 @@
         </div>
         
         <button class="emergency-btn" onclick="handleBreathing()">
-            🚨 긴급 호흡법 시작 (4-7-8)
+            🌬️ 명상 호흡법 시작 (4-7-8)
         </button>
         
         <div class="diary-section" id="recentDiarySection">
@@ -626,7 +626,7 @@
                 </div>
                 <div style="text-align: center; min-width: 120px;">
                     <div style="font-size: 1.5rem; margin-bottom: 5px;">🧘</div>
-                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 5px;">긴급 호흡법</div>
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 5px;">명상 호흡법</div>
                     <div style="font-size: 1.3rem; font-weight: bold; color: #17a2b8;" id="breathingPointsDisplay">0</div>
                     <div style="font-size: 0.8rem; color: #6c757d;">포인트</div>
                 </div>
@@ -1522,7 +1522,7 @@
                     '출석완료': '출석완료',
                     '체크리스트 실행': '체크리스트 실행',
                     '로그인 명상 호흡 완료': '로그인 명상 호흡 완료',
-                    '긴급 호흡 완료': '긴급 호흡 완료',
+                    '명상 호흡 완료': '명상 호흡 완료',
                     '레벨업': '레벨업',
                     '모든 훈련 완료': '모든 훈련 완료'
                 };
@@ -2607,23 +2607,19 @@
                 return;
             }
 
-            // 데이터베이스에서 최신 사용자 정보 다시 로드
-            await loadUserDataFromSupabase();
-
             const today = new Date().toDateString();
             const lastBreathingDate = userData.lastBreathingDate ? new Date(userData.lastBreathingDate).toDateString() : null;
 
             try {
-                // 오늘의 호흡법 횟수 계산
+                // 오늘의 호흡법 횟수 계산 (메모리에서 먼저 계산)
                 let todayBreathingCount = 0;
                 if (today === lastBreathingDate) {
-                    todayBreathingCount = userData.dailyBreathingCount || 0;
+                    todayBreathingCount = (userData.dailyBreathingCount || 0) + 1; // 이미 로드된 값에서 +1
                 } else {
-                    // 날짜가 바뀌면 초기화
-                    todayBreathingCount = 0;
+                    // 날짜가 바뀌면 1로 시작
+                    todayBreathingCount = 1;
                 }
 
-                todayBreathingCount++;
                 userData.dailyBreathingCount = todayBreathingCount;
                 userData.lastBreathingDate = new Date().toISOString();
 
@@ -2673,7 +2669,7 @@
                 await saveUserDataToSupabase();
 
                 // 포인트 내역 저장
-                const breathingType = type === 'wisdom' ? '로그인 명상 호흡 완료' : '긴급 호흡 완료';
+                const breathingType = type === 'wisdom' ? '로그인 명상 호흡 완료' : '명상 호흡 완료';
                 await savePointHistory(breathingType, breathingBonus, `오늘 ${todayBreathingCount}번째 호흡법`);
 
                 // UI 업데이트
@@ -2887,7 +2883,7 @@
                         await saveUserDataToSupabase();
 
                         // 포인트 내역 저장
-                        await savePointHistory('긴급 호흡 완료', breathingReward, '긴급 호흡법 완료');
+                        await savePointHistory('명상 호흡 완료', breathingReward, '명상 호흡법 완료');
 
                         updateUI();
                         updateDailyPoints();
