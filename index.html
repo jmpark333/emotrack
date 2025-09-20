@@ -1859,12 +1859,12 @@
                     alert(`✅ 출석 완료!
 출석 일수: ${userData.attendanceCount}일
 획득 포인트: ${bonus}점`);
-                }, 20000); // 호흡법 포함 명언 팝업 시간(19초) + 애니메이션 시간(1초) 고려
+                }, 26000); // 호흡법 포함 명언 팝업 시간(25초) + 애니메이션 시간(1초) 고려
 
                 // 동기부여 메시지 표시 (더 늦게 표시)
                 setTimeout(() => {
                     showMotivationalMessage('attendance');
-                }, 23000); // 성공 메시지 후 약간의 딜레이
+                }, 29000); // 성공 메시지 후 약간의 딜레이
 
                 // UI 업데이트 (별도 try-catch로 처리)
                 try {
@@ -2092,7 +2092,7 @@
                 z-index: 10000;
                 text-align: center;
                 font-size: 1.2rem;
-                max-width: 350px;
+                max-width: 380px;
                 line-height: 1.5;
                 animation: wisdomSlideIn 0.6s ease-out;
             `;
@@ -2119,7 +2119,7 @@
 
                 <!-- 호흡법 타이머 영역 -->
                 <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-top: 10px;">
-                    <div style="font-size: 1.1rem; margin-bottom: 10px;">🌬️ 긴급 호흡법</div>
+                    <div style="font-size: 1.1rem; margin-bottom: 10px;">🌬️ 명상 호흡법</div>
                     <div id="breathingPhase" style="font-size: 1rem; margin-bottom: 8px; font-weight: bold;">준비 중...</div>
                     <div id="breathingCountdown" style="font-size: 2rem; font-weight: bold; color: #FFD700;">3</div>
                     <div id="breathingProgress" style="width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin-top: 8px; overflow: hidden;">
@@ -2132,14 +2132,14 @@
             // 호흡법 시작
             startWisdomBreathing();
 
-            // 19초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초, 여유 있게 19초로 설정)
+            // 25초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초 + 단계 전환 딜레이 1.5초 + 여유 시간 1.5초)
             setTimeout(() => {
                 wisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
                 setTimeout(() => {
                     wisdomModal.remove();
                     style.remove();
                 }, 500);
-            }, 19000);
+            }, 25000);
         }
 
         // 로그인 명언 팝업 표시 함수
@@ -2161,7 +2161,7 @@
                 z-index: 10000;
                 text-align: center;
                 font-size: 1.2rem;
-                max-width: 350px;
+                max-width: 380px;
                 line-height: 1.5;
                 animation: wisdomSlideIn 0.6s ease-out;
             `;
@@ -2191,7 +2191,7 @@
 
                 <!-- 호흡법 타이머 영역 -->
                 <div style="background: rgba(255,255,255,0.1); border-radius: 10px; padding: 15px; margin-top: 10px;">
-                    <div style="font-size: 1.1rem; margin-bottom: 10px;">🌬️ 긴급 호흡법</div>
+                    <div style="font-size: 1.1rem; margin-bottom: 10px;">🌬️ 명상 호흡법</div>
                     <div id="loginBreathingPhase" style="font-size: 1rem; margin-bottom: 8px; font-weight: bold;">준비 중...</div>
                     <div id="loginBreathingCountdown" style="font-size: 2rem; font-weight: bold; color: #FFD700;">3</div>
                     <div id="loginBreathingProgress" style="width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin-top: 8px; overflow: hidden;">
@@ -2204,13 +2204,13 @@
             // 로그인용 호흡법 시작
             startLoginBreathing();
 
-            // 19초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초, 여유 있게 19초로 설정)
+            // 25초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초 + 단계 전환 딜레이 1.5초 + 여유 시간 1.5초)
             setTimeout(() => {
                 loginWisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
                 setTimeout(() => {
                     loginWisdomModal.remove();
                 }, 500);
-            }, 19000);
+            }, 25000);
         }
 
         // 로그인 명언 팝업용 호흡법 타이머 함수
