@@ -1353,6 +1353,11 @@
 
             // 오늘 획득 포인트 UI 업데이트
             updateDailyPoints();
+
+            // 오늘의 호흡법 포인트 캐시 초기화 및 업데이트
+            window.todaysBreathingPointsCache = undefined;
+            updateTodaysBreathingPointsCache();
+
             console.groupEnd();
         }
 
@@ -2097,34 +2102,51 @@
                 return 0;
             }
 
+            // 캐시된 값이 있으면 사용 (호흡법 실행 시마다 업데이트됨)
+            if (window.todaysBreathingPointsCache !== undefined) {
+                return window.todaysBreathingPointsCache;
+            }
+
+            // 캐시가 없으면 0 반환 (호흡법 실행 시 초기화됨)
+            return 0;
+        }
+
+        // 오늘의 호흡법 포인트 캐시 업데이트 함수
+        function updateTodaysBreathingPointsCache() {
+            if (!currentUser || !supabaseClient) {
+                return;
+            }
+
+            // 오늘의 시작 시간 (KST)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const todayString = today.toISOString();
 
-            // userData의 날짜 정보 확인
-            const lastCheck = userData.lastCheck ? new Date(userData.lastCheck) : null;
-            const isSameDay = lastCheck &&
-                today.getFullYear() === lastCheck.getFullYear() &&
-                today.getMonth() === lastCheck.getMonth() &&
-                today.getDate() === lastCheck.getDate();
+            // 데이터베이스에서 오늘의 호흡법 포인트 조회
+            supabaseClient
+                .from('point_history')
+                .select('points')
+                .eq('user_id', currentUser.id)
+                .gte('created_at', todayString)
+                .in('point_type', ['로그인 명상 호흡 완료', '명상 호흡 완료'])
+                .then(({ data, error }) => {
+                    if (error) {
+                        console.error('오늘의 호흡법 포인트 조회 오류:', error);
+                        window.todaysBreathingPointsCache = 0;
+                    } else {
+                        const todayPoints = data?.reduce((sum, record) => sum + record.points, 0) || 0;
+                        window.todaysBreathingPointsCache = todayPoints;
+                        console.log('오늘의 호흡법 포인트 캐시 업데이트:', todayPoints);
 
-            // 오늘이 처음 접속이거나 날짜가 변경된 경우
-            if (!isSameDay) {
-                return 0;
-            }
-
-            // 오늘 실행된 호흡법 횟수에 따른 포인트 계산
-            // userData.breathingPoints가 누적값이므로, 오늘의 실행 횟수를 추정
-            const breathingCount = Math.floor((userData.breathingPoints || 0) / 5);
-
-            // 제한 없이 호흡법 포인트 계산 (무제한)
-            if (breathingCount === 0) {
-                return 0;
-            } else if (breathingCount === 1) {
-                return 3; // 로그인 호흡법만 실행
-            } else {
-                return 3 + (breathingCount - 1) * 5; // 로그인 3점 + 추가 실행 5점씩 (무제한)
-            }
+                        // UI 업데이트
+                        updateDailyPoints();
+                        updateAttendanceCard();
+                    }
+                })
+                .catch(error => {
+                    console.error('오늘의 호흡법 포인트 조회 예외 오류:', error);
+                    window.todaysBreathingPointsCache = 0;
+                });
         }
 
         // 날짜 변경 시 오늘의 호흡법 포인트 초기화 함수
@@ -2772,6 +2794,9 @@
                 updateUI();
                 updateDailyPoints();
 
+                // 오늘의 호흡법 포인트 캐시 업데이트
+                updateTodaysBreathingPointsCache();
+
                 // 동기부여 메시지 표시
                 if (motivationMessage) {
                     setTimeout(() => {
@@ -3331,6 +3356,9 @@
 
             // 초기 인증 상태 확인 (내부에서 UI 업데이트 처리)
             await checkAuthState();
+
+            // 오늘의 호흡법 포인트 캐시 초기화
+            window.todaysBreathingPointsCache = undefined;
 
             // 일기 섹션 초기 UI 설정
             const diaryLoginPrompt = document.getElementById('diaryLoginPrompt');
