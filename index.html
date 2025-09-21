@@ -2347,6 +2347,9 @@
             let countdownInterval;
             let isBreathingCompleted = false;
 
+            // 타이머 참조 저장
+            window.wisdomBreathingInterval = null;
+
             function startPhase(phaseIndex) {
                 const phase = phases[phaseIndex];
                 const phaseElement = document.getElementById('breathingPhase');
@@ -2398,6 +2401,9 @@
                         }
                     }
                 }, 1000);
+
+                // 타이머 참조 저장
+                window.wisdomBreathingInterval = countdownInterval;
             }
 
             // 첫 단계 시작
@@ -2445,6 +2451,9 @@
             document.head.appendChild(style);
 
             wisdomModal.innerHTML = `
+                <div style="position: absolute; top: 10px; right: 10px;">
+                    <button onclick="closeWisdomPopup()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">×</button>
+                </div>
                 <div style="margin-bottom: 15px; font-size: 1.4rem;">📜 오늘의 지혜</div>
                 <div style="font-style: italic; margin-bottom: 15px; line-height: 1.6;">"${randomQuote}"</div>
                 <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 20px;">이 명언이 당신의 하루를 밝혀주길</div>
@@ -2464,14 +2473,18 @@
             // 호흡법 시작
             startWisdomBreathing();
 
-            // 25초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초 + 단계 전환 딜레이 1.5초 + 여유 시간 1.5초)
-            setTimeout(() => {
+            // 타이머 ID 저장
+            window.wisdomModalTimer = setTimeout(() => {
                 wisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
                 setTimeout(() => {
                     wisdomModal.remove();
                     style.remove();
                 }, 500);
             }, 25000);
+
+            // 팝업 참조 저장
+            window.wisdomModalRef = wisdomModal;
+            window.wisdomModalStyleRef = style;
         }
 
         // 로그인 명언 팝업 표시 함수
@@ -2518,6 +2531,9 @@
             }
 
             loginWisdomModal.innerHTML = `
+                <div style="position: absolute; top: 10px; right: 10px;">
+                    <button onclick="closeLoginWisdomPopup()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; opacity: 0.7; transition: opacity 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">×</button>
+                </div>
                 <div style="margin-bottom: 15px; font-size: 1.4rem;">🌟 환영합니다!</div>
                 <div style="font-style: italic; margin-bottom: 15px; line-height: 1.6;">"${randomQuote}"</div>
                 <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 20px;">평온한 하루의 시작을 응원합니다</div>
@@ -2537,13 +2553,16 @@
             // 로그인용 호흡법 시작
             startLoginBreathing();
 
-            // 25초 후 자동으로 제거 (호흡법 총 시간: 3+4+7+8 = 22초 + 단계 전환 딜레이 1.5초 + 여유 시간 1.5초)
-            setTimeout(() => {
+            // 타이머 ID 저장
+            window.loginWisdomModalTimer = setTimeout(() => {
                 loginWisdomModal.style.animation = 'wisdomSlideOut 0.5s ease-in forwards';
                 setTimeout(() => {
                     loginWisdomModal.remove();
                 }, 500);
             }, 25000);
+
+            // 팝업 참조 저장
+            window.loginWisdomModalRef = loginWisdomModal;
         }
 
         // 로그인 명언 팝업용 호흡법 타이머 함수
@@ -2558,6 +2577,9 @@
             let currentPhase = 0;
             let countdownInterval;
             let isBreathingCompleted = false;
+
+            // 타이머 참조 저장
+            window.loginBreathingInterval = null;
 
             function startPhase(phaseIndex) {
                 const phase = phases[phaseIndex];
@@ -2610,6 +2632,9 @@
                         }
                     }
                 }, 1000);
+
+                // 타이머 참조 저장
+                window.loginBreathingInterval = countdownInterval;
             }
 
             // 첫 단계 시작
@@ -3392,6 +3417,62 @@
             }
 
             console.groupEnd();
+        }
+
+        // 명언 팝업 닫기 함수
+        function closeWisdomPopup() {
+            // 타이머 정리
+            if (window.wisdomModalTimer) {
+                clearTimeout(window.wisdomModalTimer);
+                window.wisdomModalTimer = null;
+            }
+
+            // 호흡법 타이머 정리
+            if (window.wisdomBreathingInterval) {
+                clearInterval(window.wisdomBreathingInterval);
+                window.wisdomBreathingInterval = null;
+            }
+
+            // 팝업 제거
+            if (window.wisdomModalRef) {
+                window.wisdomModalRef.style.animation = 'wisdomSlideOut 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (window.wisdomModalRef) {
+                        window.wisdomModalRef.remove();
+                        window.wisdomModalRef = null;
+                    }
+                    if (window.wisdomModalStyleRef) {
+                        window.wisdomModalStyleRef.remove();
+                        window.wisdomModalStyleRef = null;
+                    }
+                }, 300);
+            }
+        }
+
+        // 로그인 명언 팝업 닫기 함수
+        function closeLoginWisdomPopup() {
+            // 타이머 정리
+            if (window.loginWisdomModalTimer) {
+                clearTimeout(window.loginWisdomModalTimer);
+                window.loginWisdomModalTimer = null;
+            }
+
+            // 호흡법 타이머 정리
+            if (window.loginBreathingInterval) {
+                clearInterval(window.loginBreathingInterval);
+                window.loginBreathingInterval = null;
+            }
+
+            // 팝업 제거
+            if (window.loginWisdomModalRef) {
+                window.loginWisdomModalRef.style.animation = 'wisdomSlideOut 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (window.loginWisdomModalRef) {
+                        window.loginWisdomModalRef.remove();
+                        window.loginWisdomModalRef = null;
+                    }
+                }, 300);
+            }
         }
     </script>
 </body>
