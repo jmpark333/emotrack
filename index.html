@@ -2117,14 +2117,13 @@
             // userData.breathingPoints가 누적값이므로, 오늘의 실행 횟수를 추정
             const breathingCount = Math.floor((userData.breathingPoints || 0) / 5);
 
-            // 오늘의 호흡법 포인트는 최대 10번 실행 시 50점 (로그인 3점 + 일반 5점 × 9번 = 48점)
-            // 간단하게 계산하여 반환
+            // 제한 없이 호흡법 포인트 계산 (무제한)
             if (breathingCount === 0) {
                 return 0;
             } else if (breathingCount === 1) {
                 return 3; // 로그인 호흡법만 실행
             } else {
-                return Math.min(3 + (breathingCount - 1) * 5, 50); // 로그인 3점 + 추가 실행 5점씩
+                return 3 + (breathingCount - 1) * 5; // 로그인 3점 + 추가 실행 5점씩 (무제한)
             }
         }
 
