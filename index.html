@@ -2229,12 +2229,14 @@
                 return false;
             }
 
-            // 한국 시간대로 날짜 비교 (UTC를 KST로 변환)
+            // 한국 시간대로 날짜 비교
             const today = new Date();
             const kstOffset = 9 * 60 * 60 * 1000; // KST는 UTC+9
-            const kstToday = new Date(today.getTime() + kstOffset);
 
-            // lastAttendanceDate가 이미 KST 시간이라고 가정하고 UTC로 변환 후 다시 KST로 계산
+            // 현재 시간을 KST로 변환
+            const kstToday = new Date(today.getTime() + (today.getTimezoneOffset() * 60 * 1000) + kstOffset);
+
+            // lastAttendanceDate가 ISO 문자열이므로 KST로 변환
             const lastAttendance = new Date(userData.lastAttendanceDate);
             const kstLastAttendance = new Date(lastAttendance.getTime() + (lastAttendance.getTimezoneOffset() * 60 * 1000) + kstOffset);
 
@@ -2244,8 +2246,12 @@
 
             console.log('오늘 출석 확인 (KST):', {
                 lastAttendanceDate: userData.lastAttendanceDate,
+                todayLocal: today.toLocaleString('ko-KR'),
                 kstToday: kstToday.toISOString(),
+                lastAttendanceLocal: lastAttendance.toLocaleString('ko-KR'),
                 kstLastAttendance: kstLastAttendance.toISOString(),
+                kstTodayDate: `${kstToday.getFullYear()}-${kstToday.getMonth() + 1}-${kstToday.getDate()}`,
+                kstLastAttendanceDate: `${kstLastAttendance.getFullYear()}-${kstLastAttendance.getMonth() + 1}-${kstLastAttendance.getDate()}`,
                 isToday: isToday
             });
 
