@@ -2100,8 +2100,8 @@
         // 출석 정보 표시 업데이트 함수
         function updateAttendanceDisplay() {
             const lastAttendanceDate = document.getElementById('lastAttendanceDate');
-            const todayPoints = document.getElementById('todayPoints');
-            const totalAttendancePoints = document.getElementById('totalAttendancePoints');
+
+            if (!lastAttendanceDate) return; // 요소가 없으면 종료
 
             if (userData.lastAttendanceDate) {
                 const lastDate = new Date(userData.lastAttendanceDate);
@@ -2114,15 +2114,6 @@
             } else {
                 lastAttendanceDate.textContent = '마지막 출석: 없음';
             }
-
-            // 오늘 획득 포인트 계산
-            const checklistPoints = userData.completedToday.length * 10;
-            const breathingPoints = getTodaysBreathingPoints(); // 오늘의 호흡법 포인트만 계산
-            const attendancePoints = checkIfAttendedToday() ? calculateAttendanceBonus() : 0;
-            const totalTodayPoints = checklistPoints + breathingPoints + attendancePoints;
-
-            todayPoints.textContent = `오늘 획득: ${totalTodayPoints}점`;
-            totalAttendancePoints.textContent = userData.attendancePoints || 0;
         }
 
         // 오늘의 호흡법 포인트 계산 함수
@@ -2225,37 +2216,31 @@
         // 오늘 출석 여부 확인 함수
         function checkIfAttendedToday() {
             if (!userData.lastAttendanceDate) {
-                console.log('오늘 출석 확인: lastAttendanceDate 없음');
                 return false;
             }
 
-            // 한국 시간대로 날짜 비교
+            const lastAttendanceDate = new Date(userData.lastAttendanceDate);
             const today = new Date();
-            const kstOffset = 9 * 60 * 60 * 1000; // KST는 UTC+9
 
-            // 현재 시간을 KST로 변환
-            const kstToday = new Date(today.getTime() + kstOffset);
+            // 'en-CA' 로케일은 'YYYY-MM-DD' 형식의 출력을 제공합니다.
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
 
-            // lastAttendanceDate가 이미 KST 시간이므로 그대로 사용
-            const lastAttendance = new Date(userData.lastAttendanceDate);
-            const kstLastAttendance = lastAttendance;
-
-            const isToday = kstToday.getFullYear() === kstLastAttendance.getFullYear() &&
-                          kstToday.getMonth() === kstLastAttendance.getMonth() &&
-                          kstToday.getDate() === kstLastAttendance.getDate();
+            const todayKST = formatter.format(today);
+            const lastAttendanceKST = formatter.format(lastAttendanceDate);
 
             console.log('오늘 출석 확인 (KST):', {
                 lastAttendanceDate: userData.lastAttendanceDate,
-                todayLocal: today.toLocaleString('ko-KR'),
-                kstToday: kstToday.toISOString(),
-                lastAttendanceLocal: lastAttendance.toLocaleString('ko-KR'),
-                kstLastAttendance: kstLastAttendance.toISOString(),
-                kstTodayDate: `${kstToday.getFullYear()}-${kstToday.getMonth() + 1}-${kstToday.getDate()}`,
-                kstLastAttendanceDate: `${kstLastAttendance.getFullYear()}-${kstLastAttendance.getMonth() + 1}-${kstLastAttendance.getDate()}`,
-                isToday: isToday
+                todayKST: todayKST,
+                lastAttendanceKST: lastAttendanceKST,
+                isSameDay: todayKST === lastAttendanceKST
             });
 
-            return isToday;
+            return todayKST === lastAttendanceKST;
         }
 
         // 출석 처리 함수
