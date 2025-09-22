@@ -1703,6 +1703,9 @@
                 console.log('저장 쿼리 시작 시간:', saveStartTime);
 
                 // 저장 쿼리 최적화: 존재하는 컬럼만 사용 (컬럼 누락 문제 해결)
+                console.log('데이터베이스 저장 - lastAttendanceDate 값:', userData.lastAttendanceDate);
+                console.log('데이터베이스 저장 - 타입:', typeof userData.lastAttendanceDate);
+
                 const optimizedSaveQuery = supabaseClient
                     .from('user_data')
                     .upsert({
@@ -1713,7 +1716,7 @@
                         last_check: userData.lastCheck,
                         completed_today: userData.completedToday,
                         total_points: userData.totalPoints,
-                        start_date: userData.lastAttendanceDate, // lastAttendanceDate를 start_date에 저장
+                        start_date: userData.lastAttendanceDate, // lastAttendanceDate를 start_date에 저장 (ISO 문자열 형식)
                         breathing_points: userData.breathingPoints || 0, // 호흡법 포인트 저장
                         last_breathing_time: userData.lastBreathingTime, // 호흡법 마지막 실행 시간 저장
                         updated_at: new Date().toISOString()
