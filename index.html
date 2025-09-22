@@ -1090,10 +1090,27 @@
             const checkboxes = document.querySelectorAll('.check-input');
             const emergencyBtn = document.querySelector('.emergency-btn');
 
+            console.log('updateChecklistSection 호출:', {
+                isLoggedIn,
+                completedToday: userData.completedToday,
+                checkboxCount: checkboxes.length
+            });
+
             checkboxes.forEach(checkbox => {
                 checkbox.disabled = !isLoggedIn;
+
                 if (!isLoggedIn) {
                     checkbox.checked = false;
+                } else {
+                    // 로그인 상태에서는 completedToday 배열에 있는 항목들 체크
+                    const checklistId = checkbox.id;
+                    const isChecked = userData.completedToday && userData.completedToday.includes(checklistId);
+                    checkbox.checked = isChecked;
+
+                    console.log(`체크박스 ${checklistId}:`, {
+                        checked: isChecked,
+                        inCompletedToday: userData.completedToday.includes(checklistId)
+                    });
                 }
             });
 
