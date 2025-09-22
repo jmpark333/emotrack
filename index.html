@@ -2236,9 +2236,9 @@
             // 현재 시간을 KST로 변환
             const kstToday = new Date(today.getTime() + kstOffset);
 
-            // lastAttendanceDate가 ISO 문자열(UTC)이므로 KST로 변환
+            // lastAttendanceDate가 이미 KST 시간이므로 그대로 사용
             const lastAttendance = new Date(userData.lastAttendanceDate);
-            const kstLastAttendance = new Date(lastAttendance.getTime() + kstOffset);
+            const kstLastAttendance = lastAttendance;
 
             const isToday = kstToday.getFullYear() === kstLastAttendance.getFullYear() &&
                           kstToday.getMonth() === kstLastAttendance.getMonth() &&
