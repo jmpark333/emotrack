@@ -1378,6 +1378,9 @@
             // 체크리스트 섹션 UI 업데이트
             updateChecklistSection();
 
+            // 출석 버튼 상태 업데이트
+            updateAttendanceButton();
+
             console.groupEnd();
         }
 
@@ -2226,12 +2229,14 @@
                 return false;
             }
 
-            // 한국 시간대로 날짜 비교
+            // 한국 시간대로 날짜 비교 (UTC를 KST로 변환)
             const today = new Date();
             const kstOffset = 9 * 60 * 60 * 1000; // KST는 UTC+9
             const kstToday = new Date(today.getTime() + kstOffset);
+
+            // lastAttendanceDate가 이미 KST 시간이라고 가정하고 UTC로 변환 후 다시 KST로 계산
             const lastAttendance = new Date(userData.lastAttendanceDate);
-            const kstLastAttendance = new Date(lastAttendance.getTime() + kstOffset);
+            const kstLastAttendance = new Date(lastAttendance.getTime() + (lastAttendance.getTimezoneOffset() * 60 * 1000) + kstOffset);
 
             const isToday = kstToday.getFullYear() === kstLastAttendance.getFullYear() &&
                           kstToday.getMonth() === kstLastAttendance.getMonth() &&
@@ -2292,6 +2297,9 @@
 
                 // 포인트 내역 저장
                 await savePointHistory('출석완료', bonus, `${userData.attendanceCount}일차 출석 보너스`);
+
+                // 출석 버튼 상태 즉시 업데이트
+                updateAttendanceButton();
 
                 // 명언 팝업 먼저 표시 (가장 먼저)
                 showWisdomQuote();
@@ -3401,6 +3409,16 @@
 
             // 초기 인증 상태 확인 (내부에서 UI 업데이트 처리)
             await checkAuthState();
+
+            // 출석 상태 최종 확인 및 UI 동기화
+            if (currentUser && supabaseClient) {
+                console.log('🔍 페이지 로드 시 출석 상태 최종 확인');
+                // 데이터 로드 후 약간의 지연을 두고 출석 상태 재확인
+                setTimeout(() => {
+                    updateAttendanceButton();
+                    console.log('✅ 출석 버튼 상태 동기화 완료');
+                }, 500);
+            }
 
             // 오늘의 호흡법 포인트 캐시 초기화
             window.todaysBreathingPointsCache = undefined;
