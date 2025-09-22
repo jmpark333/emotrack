@@ -1333,7 +1333,7 @@
                     userData.points = data.points || 0;
                     userData.lastCheck = data.last_check;
                     userData.totalPoints = data.total_points || 0;
-                    userData.lastAttendanceDate = data.start_date; // start_date를 lastAttendanceDate로 사용
+                    userData.lastAttendanceDate = data.last_check; // last_check를 lastAttendanceDate로 사용 (정확한 타임스탬프)
                     userData.attendancePoints = 0; // attendance_points 컬럼이 없으므로 0으로 초기화
                     userData.breathingPoints = data.breathing_points || 0; // breathing_points 컬럼에서 값 로드
                     userData.lastBreathingTime = data.last_breathing_time; // 호흡법 마지막 실행 시간 로드
@@ -1736,7 +1736,7 @@
                         streak: userData.attendanceCount, // attendanceCount를 streak 컬럼에 저장
                         level: userData.level,
                         points: userData.points,
-                        last_check: userData.lastCheck,
+                        last_check: userData.lastAttendanceDate, // 출석 시간을 last_check에 저장 (타임스탬프 형식 지원)
                         completed_today: userData.completedToday,
                         total_points: userData.totalPoints,
                         start_date: userData.lastAttendanceDate, // lastAttendanceDate를 start_date에 저장 (ISO 문자열 형식)
