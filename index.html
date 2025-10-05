@@ -2694,7 +2694,13 @@
                 }
 
                 // 데이터베이스에 저장
-                await saveUserDataToSupabase();
+                const updatedData = { ...userData };
+                updatedData.breathingPoints = userData.breathingPoints;
+                updatedData.points = userData.points;
+                updatedData.totalPoints = userData.totalPoints;
+                updatedData.lastBreathingTime = userData.lastBreathingTime;
+
+                await saveUserDataToSupabase(updatedData);
 
                 // 포인트 내역 저장
                 const breathingType = type === 'wisdom' ? '로그인 명상 호흡 완료' : '명상 호흡 완료';
@@ -2909,6 +2915,11 @@
 
                     (async () => {
                         try {
+                            console.log('🧘 호흡법 포인트 처리 시작:', {
+                                기존userData: userData,
+                                breathingReward: breathingReward
+                            });
+
                             // 데이터 저장을 위한 임시 객체 생성
                             const updatedData = { ...userData };
                             updatedData.points += breathingReward;
@@ -2916,18 +2927,27 @@
                             updatedData.breathingPoints = (updatedData.breathingPoints || 0) + breathingReward;
                             updatedData.lastBreathingTime = new Date().toISOString();
 
+                            console.log('📝 저장할 데이터:', updatedData);
+
                             // 데이터베이스 저장
                             await saveUserDataToSupabase(updatedData);
+
+                            console.log('✅ 데이터베이스 저장 성공');
 
                             // 성공 시 전역 userData 업데이트
                             Object.assign(userData, updatedData);
 
+                            console.log('🔄 userData 업데이트 완료:', userData);
+
                             // 포인트 내역 저장
                             await savePointHistory('명상 호흡 완료', breathingReward, '명상 호흡법 완료');
+
+                            console.log('📊 포인트 내역 저장 완료');
 
                             // 오늘의 호흡법 포인트 캐시 즉시 업데이트
                             if (window.todaysBreathingPointsCache !== undefined) {
                                 window.todaysBreathingPointsCache += breathingReward;
+                                console.log('💨 호흡법 포인트 캐시 업데이트:', window.todaysBreathingPointsCache);
                             }
 
                             // UI 업데이트
@@ -2935,8 +2955,10 @@
                             updateDailyPoints();
                             await checkAndHandleLevelUp();
 
+                            console.log('🎨 UI 업데이트 완료');
+
                         } catch (error) {
-                            console.error('호흡법 데이터 저장 오류:', error);
+                            console.error('❌ 호흡법 데이터 저장 오류:', error);
                             alert('포인트 저장에 실패했습니다. 다시 시도해주세요.');
                         }
                     })();
