@@ -1835,7 +1835,7 @@
             if (leveledUp) {
                 // 레벨이 변경된 경우, UI를 업데이트하고 데이터베이스에 저장
                 document.getElementById('level').textContent = userData.level;
-                await saveUserDataToSupabase();
+                await saveUserDataToSupabase(userData);
             }
             // 항상 레벨 진행도 UI를 업데이트
             updateLevelProgress();
@@ -1913,11 +1913,10 @@
                 email: currentUser?.email
             });
 
-            // Supabase에 저장 (로그인한 경우만)
             if (currentUser && supabaseClient) {
                 console.log('Supabase에 데이터 저장 시도...');
                 try {
-                    await saveUserDataToSupabase();
+                    await saveUserDataToSupabase(userData); // Pass the global userData object
                     console.log('Supabase 데이터 저장 완료');
                 } catch (saveError) {
                     console.error('Supabase 저장 실패:', saveError);
@@ -2679,35 +2678,31 @@
                     }
                 }
 
-                // 포인트 증가 (실시간 반영)
-                userData.breathingPoints = (userData.breathingPoints || 0) + breathingBonus;
-                userData.points += breathingBonus;
-                userData.totalPoints = (userData.totalPoints || 0) + breathingBonus;
+                // 1. Create a temporary updatedData object
+                const updatedData = { ...userData };
 
-                // 실시간 UI 업데이트 (데이터베이스 저장보다 먼저)
-                updateUI();
-                updateDailyPoints();
+                // 2. Apply changes to the temporary object
+                updatedData.dailyBreathingCount = todayBreathingCount;
+                updatedData.lastBreathingDate = new Date().toISOString();
+                updatedData.breathingPoints = (updatedData.breathingPoints || 0) + breathingBonus;
+                updatedData.points += breathingBonus;
+                updatedData.totalPoints = (updatedData.totalPoints || 0) + breathingBonus;
+                updatedData.lastBreathingTime = new Date().toISOString();
 
-                // 오늘의 호흡법 포인트 캐시 즉시 업데이트
+                // 3. Save the explicit data object
+                await saveUserDataToSupabase(updatedData);
+
+                // 4. If successful, update the global state
+                Object.assign(userData, updatedData);
+
+                // 5. Update UI and save history
                 if (window.todaysBreathingPointsCache !== undefined) {
                     window.todaysBreathingPointsCache += breathingBonus;
                 }
-
-                // 데이터베이스에 저장
-                const updatedData = { ...userData };
-                updatedData.breathingPoints = userData.breathingPoints;
-                updatedData.points = userData.points;
-                updatedData.totalPoints = userData.totalPoints;
-                updatedData.lastBreathingTime = userData.lastBreathingTime;
-
-                await saveUserDataToSupabase(updatedData);
-
-                // 포인트 내역 저장
                 const breathingType = type === 'wisdom' ? '로그인 명상 호흡 완료' : '명상 호흡 완료';
                 const breathingDescription = type === 'wisdom' ? '로그인 명상 호흡법' : '명상 호흡법';
                 await savePointHistory(breathingType, breathingBonus, `${breathingDescription} 완료`);
 
-                // 최종 UI 업데이트 및 캐시 동기화
                 updateUI();
                 updateDailyPoints();
                 updateTodaysBreathingPointsCache();
@@ -2906,60 +2901,28 @@
                     setTimeout(nextStep, currentStep.duration);
                 } else {
                     // 호흡법 완료
-                    const breathingReward = 5; // 포인트 계산 일치를 위해 5점으로 수정
-
+                    const breathingReward = 5;
                     alert(`✅ 호흡법 완료! 평온 포인트 ${breathingReward}점 획득!\n이제 조금 더 평온해지셨나요?`);
-                    
-                    // 동기부여 메시지 표시
                     showMotivationalMessage('breathing');
 
                     (async () => {
+                        const updatedData = { ...userData };
+                        updatedData.points += breathingReward;
+                        updatedData.totalPoints = (updatedData.totalPoints || 0) + breathingReward;
+                        updatedData.breathingPoints = (updatedData.breathingPoints || 0) + breathingReward;
+                        updatedData.lastBreathingTime = new Date().toISOString();
+
                         try {
-                            console.log('🧘 호흡법 포인트 처리 시작:', {
-                                기존userData: userData,
-                                breathingReward: breathingReward
-                            });
-
-                            // 데이터 저장을 위한 임시 객체 생성
-                            const updatedData = { ...userData };
-                            updatedData.points += breathingReward;
-                            updatedData.totalPoints = (updatedData.totalPoints || 0) + breathingReward;
-                            updatedData.breathingPoints = (updatedData.breathingPoints || 0) + breathingReward;
-                            updatedData.lastBreathingTime = new Date().toISOString();
-
-                            console.log('📝 저장할 데이터:', updatedData);
-
-                            // 데이터베이스 저장
                             await saveUserDataToSupabase(updatedData);
+                            Object.assign(userData, updatedData); // 성공 시에만 전역 상태 업데이트
 
-                            console.log('✅ 데이터베이스 저장 성공');
-
-                            // 성공 시 전역 userData 업데이트
-                            Object.assign(userData, updatedData);
-
-                            console.log('🔄 userData 업데이트 완료:', userData);
-
-                            // 포인트 내역 저장
                             await savePointHistory('명상 호흡 완료', breathingReward, '명상 호흡법 완료');
-
-                            console.log('📊 포인트 내역 저장 완료');
-
-                            // 오늘의 호흡법 포인트 캐시 즉시 업데이트
-                            if (window.todaysBreathingPointsCache !== undefined) {
-                                window.todaysBreathingPointsCache += breathingReward;
-                                console.log('💨 호흡법 포인트 캐시 업데이트:', window.todaysBreathingPointsCache);
-                            }
-
-                            // UI 업데이트
                             updateUI();
                             updateDailyPoints();
                             await checkAndHandleLevelUp();
-
-                            console.log('🎨 UI 업데이트 완료');
-
                         } catch (error) {
-                            console.error('❌ 호흡법 데이터 저장 오류:', error);
-                            alert('포인트 저장에 실패했습니다. 다시 시도해주세요.');
+                            console.error("호흡법 포인트 저장 오류:", error);
+                            alert("데이터 저장에 실패했습니다. 다시 시도해주세요.");
                         }
                     })();
                 }
@@ -3197,27 +3160,31 @@
         // 모든 포인트와 레벨 리셋 함수
         async function resetAllPointsAndLevels() {
             if (confirm('정말 모든 포인트와 레벨을 리셋하시겠습니까?\n⚠️ 이 작업은 되돌릴 수 없습니다.')) {
+                const updatedData = { ...userData };
+
                 // 모든 포인트와 레벨을 0으로 초기화
-                userData.points = 0;
-                userData.totalPoints = 0;
-                userData.level = 1;
-                userData.breathingPoints = 0;
+                updatedData.points = 0;
+                updatedData.totalPoints = 0;
+                updatedData.level = 1;
+                updatedData.breathingPoints = 0;
+                updatedData.completedToday = [];
+                updatedData.lastCheck = null;
 
-                // 체크리스트는 유지하지만 오늘의 포인트는 초기화
-                userData.completedToday = [];
-                userData.lastCheck = null;
-
-                // DB에 저장
                 if (currentUser && supabaseClient) {
-                    await saveUserDataToSupabase();
+                    try {
+                        await saveUserDataToSupabase(updatedData);
+                        Object.assign(userData, updatedData); // 성공 시에만 전역 상태 업데이트
+
+                        // UI 업데이트
+                        updateUI();
+                        updateLevelProgress();
+                        updateDailyPoints();
+                        alert('✅ 모든 포인트와 레벨이 리셋되었습니다.\n오늘부터 새로 시작하세요!');
+                    } catch (error) {
+                        console.error("리셋 오류:", error);
+                        alert("데이터 리셋에 실패했습니다. 다시 시도해주세요.");
+                    }
                 }
-
-                // UI 업데이트
-                updateUI();
-                updateLevelProgress();
-                updateDailyPoints();
-
-                alert('✅ 모든 포인트와 레벨이 리셋되었습니다.\n오늘부터 새로 시작하세요!');
             }
         }
 
@@ -3228,55 +3195,38 @@
             const today = new Date();
             const lastCheck = userData.lastCheck ? new Date(userData.lastCheck) : null;
 
-            const isSameDay = lastCheck &&
-                today.getFullYear() === lastCheck.getFullYear() &&
-                today.getMonth() === lastCheck.getMonth() &&
-                today.getDate() === lastCheck.getDate();
-
-            console.log('날짜 변경 확인:', {
-                today: today.toISOString(),
-                lastCheck: userData.lastCheck,
-                isSameDay,
-                completedToday: userData.completedToday
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
             });
 
+            const isSameDay = lastCheck && formatter.format(today) === formatter.format(lastCheck);
+
             if (lastCheck && !isSameDay) {
-                // 날짜가 변경된 경우
-                const yesterday = new Date(today);
-                yesterday.setDate(today.getDate() - 1);
+                const updatedData = { ...userData };
+                updatedData.completedToday = [];
+                updatedData.breathingPoints = 0;
 
-                const isLastCheckYesterday = lastCheck.getFullYear() === yesterday.getFullYear() &&
-                    lastCheck.getMonth() === yesterday.getMonth() &&
-                    lastCheck.getDate() === yesterday.getDate();
-
-                console.log('날짜 변경 감지:', { isLastCheckYesterday });
-
-                if (!isLastCheckYesterday) {
-                    // 출석 기록은 유지되지만 체크리스트는 초기화
-                    console.log('날짜 변경으로 체크리스트 초기화');
-                }
-
-                // completedToday 배열과 오늘의 포인트 초기화
-                userData.completedToday = [];
-                userData.breathingPoints = 0;
-
-                // 모든 체크박스 활성화 및 상태 초기화
-                document.querySelectorAll('.check-input').forEach(checkbox => {
-                    checkbox.disabled = false;
-                    checkbox.checked = false;
-                    checkbox.removeAttribute('title');
-                    checkbox.parentElement.classList.remove('completed');
-                });
-
-                // 변경된 데이터 저장
                 if (currentUser && supabaseClient) {
-                    await saveUserDataToSupabase();
+                    try {
+                        await saveUserDataToSupabase(updatedData);
+                        Object.assign(userData, updatedData);
+
+                        document.querySelectorAll('.check-input').forEach(checkbox => {
+                            checkbox.disabled = false;
+                            checkbox.checked = false;
+                            checkbox.removeAttribute('title');
+                            checkbox.parentElement.classList.remove('completed');
+                        });
+
+                        updateUI();
+                        console.log('날짜 변경으로 completedToday 배열이 초기화되고 모든 체크박스가 활성화되었습니다.');
+                    } catch (error) {
+                        console.error("일일 데이터 리셋 오류:", error);
+                    }
                 }
-
-                // UI 업데이트
-                updateUI();
-
-                console.log('날짜 변경으로 completedToday 배열이 초기화되고 모든 체크박스가 활성화되었습니다.');
             } else {
                 console.log('오늘 날짜이거나 첫 사용입니다. 체크리스트 상태를 유지합니다.');
             }
