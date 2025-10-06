@@ -1864,7 +1864,15 @@
                 updatedData.completedToday = [...userData.completedToday, id]; // Add new item
                 updatedData.points += 10;
                 updatedData.totalPoints = (updatedData.totalPoints || 0) + 10;
-                updatedData.lastCheck = new Date().toISOString(); // Update last activity time
+                // KST 기준 현재 날짜 저장
+                const now = new Date();
+                const formatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Seoul',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                updatedData.lastCheck = formatter.format(now); // Update last activity time
 
                 try {
                     // 2. Save the explicit data object
@@ -2072,12 +2080,16 @@
         // 날짜 변경 시 오늘의 호흡법 포인트 초기화 함수
         function resetDailyBreathingPointsIfNeeded() {
             const now = new Date();
-            const lastCheck = userData.lastCheck ? new Date(userData.lastCheck) : null;
 
-            const isSameDay = lastCheck &&
-                now.getFullYear() === lastCheck.getFullYear() &&
-                now.getMonth() === lastCheck.getMonth() &&
-                now.getDate() === lastCheck.getDate();
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+
+            const todayKST = formatter.format(now);
+            const isSameDay = userData.lastCheck && todayKST === userData.lastCheck;
 
             if (!isSameDay) {
                 // 날짜가 변경된 경우: 오늘의 호흡법 포인트 초기화
@@ -2120,7 +2132,6 @@
                 return false;
             }
 
-            const lastAttendanceDate = new Date(userData.lastAttendanceDate);
             const today = new Date();
 
             // 'en-CA' 로케일은 'YYYY-MM-DD' 형식의 출력을 제공합니다.
@@ -2132,16 +2143,14 @@
             });
 
             const todayKST = formatter.format(today);
-            const lastAttendanceKST = formatter.format(lastAttendanceDate);
 
             console.log('오늘 출석 확인 (KST):', {
                 lastAttendanceDate: userData.lastAttendanceDate,
                 todayKST: todayKST,
-                lastAttendanceKST: lastAttendanceKST,
-                isSameDay: todayKST === lastAttendanceKST
+                isSameDay: todayKST === userData.lastAttendanceDate
             });
 
-            return todayKST === lastAttendanceKST;
+            return todayKST === userData.lastAttendanceDate;
         }
 
         // 출석 처리 함수
@@ -2158,7 +2167,15 @@
                 return;
             }
 
-            const today = new Date().toISOString();
+            // KST 기준 현재 날짜를 YYYY-MM-DD 형식으로 저장
+            const today = new Date();
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const todayKST = formatter.format(today);
             const bonus = calculateAttendanceBonus();
 
             // 1. Create a temporary updatedData object by cloning the current userData
@@ -2166,8 +2183,8 @@
 
             // 2. Apply all changes to the temporary object
             updatedData.attendanceCount += 1;
-            updatedData.lastAttendanceDate = today;
-            updatedData.lastCheck = today; // Also update last activity time
+            updatedData.lastAttendanceDate = todayKST;
+            updatedData.lastCheck = todayKST; // Also update last activity time
             updatedData.points += bonus;
             updatedData.totalPoints = (updatedData.totalPoints || 0) + bonus;
             updatedData.attendancePoints = (updatedData.attendancePoints || 0) + bonus;
@@ -3193,7 +3210,6 @@
         // 날짜 변경 확인 및 completedToday 배열 초기화
         async function checkDateChangeAndReset() {
             const today = new Date();
-            const lastCheck = userData.lastCheck ? new Date(userData.lastCheck) : null;
 
             const formatter = new Intl.DateTimeFormat('en-CA', {
                 timeZone: 'Asia/Seoul',
@@ -3202,9 +3218,10 @@
                 day: '2-digit'
             });
 
-            const isSameDay = lastCheck && formatter.format(today) === formatter.format(lastCheck);
+            const todayKST = formatter.format(today);
+            const isSameDay = userData.lastCheck && todayKST === userData.lastCheck;
 
-            if (lastCheck && !isSameDay) {
+            if (userData.lastCheck && !isSameDay) {
                 const updatedData = { ...userData };
                 updatedData.completedToday = [];
                 updatedData.breathingPoints = 0;
