@@ -492,7 +492,8 @@
         <div class="header">
             <h1>🧘‍♂️ 정서적 독립 트래커</h1>
             <p id="datetime"></p>
-            <p>오늘도 당신의 평온함을 지키는 하루가 되길</p>
+            <p id="randomQuote" style="font-style: italic; margin-bottom: 10px; font-size: 0.9rem; color: #555;"></p>
+            <p>평온한 하루의 시작을 응원합니다</p>
             <div id="userSection" style="display: none;">
                 <span id="userEmail"></span>
                 <button onclick="logout()" style="margin-left: 10px; padding: 5px 10px; background: var(--danger); color: white; border: none; border-radius: 5px; cursor: pointer;">로그아웃</button>
@@ -3518,6 +3519,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateDateTime();
             setInterval(updateDateTime, 1000);
+
+            // Display a random quote on page load
+            const randomQuoteElement = document.getElementById('randomQuote');
+            if (randomQuoteElement) {
+                const randomQuote = wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
+                randomQuoteElement.textContent = `"${randomQuote}"`;
+            }
         });
     </script>
 </body>
