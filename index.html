@@ -492,7 +492,7 @@
         <div class="header">
             <h1>🧘‍♂️ 정서적 독립 트래커</h1>
             <p id="datetime"></p>
-            <p id="randomQuote" style="font-weight: bold; font-size: 1rem; color: var(--dark); background-color: var(--light); padding: 12px; border-radius: 10px; margin-bottom: 15px;"></p>
+            <p id="randomQuote" style="font-weight: bold; font-size: 1rem; color: white; background: linear-gradient(135deg, var(--primary), var(--secondary)); padding: 12px; border-radius: 10px; margin-bottom: 15px; cursor: pointer;" onclick="displayRandomQuote()"></p>
             <p>평온한 하루의 시작을 응원합니다</p>
             <div id="userSection" style="display: none;">
                 <span id="userEmail"></span>
@@ -2343,6 +2343,15 @@
             "당신을 괴롭히는 것들에서 도망치고 싶다면, 다른 장소에 가는 것이 아니라 다른 사람이 되어야 한다."
         ];
 
+        // 랜덤 명언 표시 함수
+        function displayRandomQuote() {
+            const randomQuoteElement = document.getElementById('randomQuote');
+            if (randomQuoteElement) {
+                const randomQuote = wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
+                randomQuoteElement.textContent = `"${randomQuote}"`;
+            }
+        }
+
         // 명언 팝업용 호흡법 타이머 함수
         function startWisdomBreathing() {
             const phases = [
@@ -3521,11 +3530,7 @@
             setInterval(updateDateTime, 1000);
 
             // Display a random quote on page load
-            const randomQuoteElement = document.getElementById('randomQuote');
-            if (randomQuoteElement) {
-                const randomQuote = wisdomQuotes[Math.floor(Math.random() * wisdomQuotes.length)];
-                randomQuoteElement.textContent = `"${randomQuote}"`;
-            }
+            displayRandomQuote();
         });
     </script>
 </body>
