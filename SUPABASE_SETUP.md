@@ -1,183 +1,139 @@
 # Supabase 설정 가이드
 
-이 문서는 정서적 독립 트래커 앱에 Supabase를 연동하는 방법을 안내합니다.
+현재 Supabase 프로젝트가 삭제되었거나 접근할 수 없는 상태입니다. 다음 단계를 따라 새 프로젝트를 설정해주세요.
 
-## 1. Supabase 프로젝트 생성
+## 1단계: 새 Supabase 프로젝트 생성
 
-1. [Supabase](https://supabase.com)에 접속하여 회원가입 또는 로그인합니다.
-2. "New Project"를 클릭하여 새 프로젝트를 생성합니다.
-3. 프로젝트 정보를 입력합니다:
-   - **Organization**: 조직 이름 선택
-   - **Name**: 프로젝트 이름 (예: `emotrack`)
-   - **Database Password**: `EsXUooz1q8jGMSVF` (제공된 비밀번호 사용)
-   - **Region**: 가까운 지역 선택 (예: South Korea)
-4. "Create new project"를 클릭합니다.
+1. [Supabase Dashboard](https://supabase.com/dashboard)에 로그인
+2. **New Project** 버튼 클릭
+3. 프로젝트 정보 입력:
+   - **Organization**: 기존 조직 선택 또는 새로 생성
+   - **Name**: `emotrack` (또는 원하는 이름)
+   - **Database Password**: 안전한 비밀번호 생성 및 저장 (중요!)
+   - **Region**: `Northeast Asia (Seoul)` 선택 (한국 사용자에게 최적)
+   - **Pricing Plan**: Free tier로 시작
+4. **Create new project** 클릭
+5. 프로젝트 생성 대기 (약 2-3분 소요)
 
-## 2. Database URL과 API Key 가져오기
+## 2단계: 데이터베이스 테이블 생성
 
-프로젝트가 생성되면:
+1. 좌측 메뉴에서 **SQL Editor** 클릭
+2. **New query** 클릭
+3. `setup-database.sql` 파일의 내용을 복사하여 붙여넣기
+4. **Run** 버튼 클릭하여 실행
+5. 성공 메시지 확인
 
-1. 프로젝트 대시보드에서 **Settings** → **API**로 이동합니다.
-2. **Project URL**과 **service_role** 또는 **anon** public key를 복사합니다.
-   - **URL**: `https://hpejebnqhgojfxttfbal.supabase.co` 
-   - **anon key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZWplYm5xaGdvamZ4dHRmYmFsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzc1MDgxMiwiZXhwIjoyMDczMzI2ODEyfQ.aHqJ4jXlgu6FnKWfLzxmwendnLUI4JZ8R-FwfPwa_oY` 형식
+## 3단계: API 정보 확인
 
-## 3. user_data 테이블 생성
+1. 좌측 메뉴에서 **Settings** → **API** 클릭
+2. 다음 정보 복사:
+   - **Project URL**: `https://xxxxxxxxxx.supabase.co`
+   - **anon public** API key (긴 문자열)
 
-SQL Editor에서 다음 SQL을 실행하여 사용자 데이터 테이블을 생성합니다:
+## 4단계: 로컬 환경 변수 업데이트
 
-```sql
--- user_data 테이블 생성
-CREATE TABLE user_data (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    attendance_count INTEGER DEFAULT 0,
-    level INTEGER DEFAULT 1,
-    points INTEGER DEFAULT 0,
-    last_check TIMESTAMP,
-    completed_today TEXT[] DEFAULT '{}',
-    total_points INTEGER DEFAULT 0,
-    last_attendance_date TIMESTAMP,
-    attendance_points INTEGER DEFAULT 0,
-    breathing_points INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+프로젝트의 `.env` 파일을 다음과 같이 업데이트:
 
-    UNIQUE(user_id)
-);
-
--- RLS (Row Level Security) 활성화
-ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
-
--- 기존 테이블이 있는 경우 마이그레이션
--- 기존 streak 관련 컬럼 삭제 및 출석 관련 컬럼 추가
-DO $$
-BEGIN
-    -- 컬럼 존재 여부 확인 후 삭제
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'streak') THEN
-        ALTER TABLE user_data DROP COLUMN streak;
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'start_date') THEN
-        ALTER TABLE user_data DROP COLUMN start_date;
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'last_completed_date') THEN
-        ALTER TABLE user_data DROP COLUMN last_completed_date;
-    END IF;
-
-    -- 새 컬럼 추가 (존재하지 않는 경우만)
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'attendance_count') THEN
-        ALTER TABLE user_data ADD COLUMN attendance_count INTEGER DEFAULT 0;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'last_attendance_date') THEN
-        ALTER TABLE user_data ADD COLUMN last_attendance_date TIMESTAMP;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'attendance_points') THEN
-        ALTER TABLE user_data ADD COLUMN attendance_points INTEGER DEFAULT 0;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'breathing_points') THEN
-        ALTER TABLE user_data ADD COLUMN breathing_points INTEGER DEFAULT 0;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_data' AND column_name = 'last_breathing_time') THEN
-        ALTER TABLE user_data ADD COLUMN last_breathing_time TIMESTAMP;
-    END IF;
-END $$;
-
--- 사용자 자신의 데이터만 읽을 수 있는 정책
-CREATE POLICY "Users can view own data"
-ON user_data FOR SELECT
-USING (auth.uid() = user_id);
-
--- 사용자 자신의 데이터만 삽입할 수 있는 정책
-CREATE POLICY "Users can insert own data"
-ON user_data FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
--- 사용자 자신의 데이터만 업데이트할 수 있는 정책
-CREATE POLICY "Users can update own data"
-ON user_data FOR UPDATE
-USING (auth.uid() = user_id);
-
--- updated_at 자동 업데이트 트리거
-CREATE OR REPLACE FUNCTION handle_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER handle_user_data_updated_at
-    BEFORE UPDATE ON user_data
-    FOR EACH ROW
-    EXECUTE FUNCTION handle_updated_at();
+```env
+SUPABASE_URL='https://xxxxxxxxxx.supabase.co'
+SUPABASE_ANON_KEY='your-anon-key-here'
 ```
 
-## 4. 앱에 Supabase 설정 적용
+## 5단계: Netlify 환경 변수 설정
 
-`index.html` 파일에서 다음 부분을 찾아 수정합니다:
+1. [Netlify Dashboard](https://app.netlify.com) 접속
+2. `emotrack-app` 사이트 선택
+3. **Site configuration** → **Environment variables** 클릭
+4. 기존 환경 변수 수정 또는 새로 추가:
 
-```javascript
-// 이 부분을 찾아서:
-// const supabaseUrl = 'YOUR_SUPABASE_URL';
-// const supabaseKey = 'YOUR_SUPABASE_KEY';
-// const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+   **환경 변수 1:**
+   - Key: `SUPABASE_URL`
+   - Value: (3단계에서 복사한 Project URL)
+   - Scopes: All scopes 선택
 
-// 이렇게 수정:
-const supabaseUrl = 'https://xxxxxxxx.supabase.co'; // 복사한 URL로 변경
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // 복사한 키로 변경
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+   **환경 변수 2:**
+   - Key: `SUPABASE_ANON_KEY`
+   - Value: (3단계에서 복사한 anon public key)
+   - Scopes: All scopes 선택
+
+5. **Save** 버튼 클릭
+
+## 6단계: 사이트 재배포
+
+### 방법 A: Netlify 대시보드에서
+
+1. **Deploys** 탭으로 이동
+2. **Trigger deploy** 버튼 클릭
+3. **Clear cache and deploy site** 선택
+4. 배포 완료 대기 (1-2분)
+
+### 방법 B: Git으로 재배포
+
+```bash
+cd emotrack
+git add .
+git commit -m "Update Supabase configuration"
+git push
 ```
 
-## 5. 이메일 인증 설정 (선택사항)
+Netlify가 자동으로 새 배포를 시작합니다.
 
-1. **Authentication** → **Settings**로 이동합니다.
-2. **Site URL**을 앱의 URL로 설정합니다 (로컬 개발 시 `http://localhost` 또는 Netlify URL).
-3. **Email Templates**에서 이메일 내용을 원하는 대로 커스터마이징할 수 있습니다.
+## 7단계: Authentication 설정 (선택사항)
 
-## 6. 테스트
+앱에서 회원가입을 허용하려면:
 
-1. 앱을 열고 "로그인/회원가입" 버튼을 클릭합니다.
-2. 회원가입을 테스트합니다.
-3. 로그인을 테스트합니다.
-4. 데이터가 정상적으로 저장되고 로드되는지 확인합니다.
+1. Supabase Dashboard에서 **Authentication** → **Providers** 클릭
+2. **Email** provider가 활성화되어 있는지 확인
+3. **Email Auth** 설정:
+   - **Enable Email Confirmations**: OFF (개발 중에는 끄는 것을 권장)
+   - 또는 SMTP 설정 구성
 
-## 주의사항
+## 8단계: 테스트
 
-- **보안**: API 키를 공개 저장소에 커밋하지 마세요. 환경 변수 사용을 권장합니다.
-- **백업**: 정기적으로 데이터베이스를 백업하세요.
-- **RLS**: Row Level Security가 올바르게 설정되었는지 확인하세요.
-- **지역**: 사용자와 가까운 지역을 선택하여 응답 속도를 최적화하세요.
+1. 배포된 사이트 방문: https://emotrack-app.netlify.app
+2. 브라우저 개발자 도구 열기 (F12)
+3. Console 탭 확인
+4. 회원가입 및 로그인 테스트
 
 ## 문제 해결
 
-### 이메일 인증이 오지 않을 경우
-1. Supabase 대시보드의 Authentication → Settings에서 Site URL을 확인합니다.
-2. 스팸 메일함을 확인합니다.
-3. 이메일 템플릿을 확인합니다.
+### 로그인이 여전히 실패하는 경우
 
-### CORS 오류가 발생할 경우
-1. Authentication → Settings에서 Redirect URLs에 앱 URL을 추가합니다.
-2. `http://localhost:3000` (개발 환경)
-3. `https://your-app.netlify.app` (프로덕션 환경)
+1. 브라우저 캐시 완전 삭제:
+   - Chrome/Edge: Ctrl + Shift + Delete → "Cached images and files" 선택
+   - 또는 시크릿/프라이빗 모드로 테스트
 
-### 데이터 저장 오류가 발생할 경우
-1. RLS 정책이 올바르게 설정되었는지 확인합니다.
-2. 사용자가 로그인되어 있는지 확인합니다.
-3. 콘솔에서 오류 메시지를 확인합니다.
+2. Netlify 함수 로그 확인:
+   - Netlify Dashboard → Functions → `get-supabase-config` 클릭
+   - 최근 로그 확인
 
-### 호흡법 포인트 관련 컬럼 추가
-다음 SQL을 실행하여 호흡법 포인트 기능에 필요한 컬럼을 추가합니다:
+3. Supabase 프로젝트 상태 확인:
+   - Supabase Dashboard에서 프로젝트가 "Active" 상태인지 확인
+   - Database → Tables에서 테이블이 제대로 생성되었는지 확인
 
-```sql
--- breathing_points 컬럼 추가 (호흡법 포인트 저장)
-ALTER TABLE user_data ADD COLUMN IF NOT EXISTS breathing_points INTEGER DEFAULT 0;
+### "Failed to fetch" 에러가 계속 발생하는 경우
 
--- last_breathing_time 컬럼 추가 (호흡법 마지막 실행 시간 저장)
-ALTER TABLE user_data ADD COLUMN IF NOT EXISTS last_breathing_time TIMESTAMP;
-```
+1. Supabase URL이 올바른지 확인:
+   ```bash
+   curl -I https://your-project-id.supabase.co
+   ```
+   → HTTP 200 또는 404 응답이 와야 함 (ERR_NAME_NOT_RESOLVED가 아님)
+
+2. ANON KEY가 올바른지 확인 (공백이나 줄바꿈이 없어야 함)
+
+3. Netlify 환경 변수가 실제로 적용되었는지 확인:
+   - 브라우저에서 `https://emotrack-app.netlify.app/.netlify/functions/get-supabase-config` 방문
+   - 환경 변수가 제대로 반환되는지 확인
+
+## 참고 자료
+
+- [Supabase Documentation](https://supabase.com/docs)
+- [Netlify Environment Variables](https://docs.netlify.com/environment-variables/overview/)
+- [Supabase Row Level Security](https://supabase.com/docs/guides/auth/row-level-security)
+
+## 지원
+
+문제가 계속되면 다음 정보를 포함하여 문의해주세요:
+- 브라우저 Console 에러 메시지
+- Netlify 함수 로그
+- Supabase 프로젝트 상태
